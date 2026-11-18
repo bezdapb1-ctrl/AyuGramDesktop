@@ -78,15 +78,19 @@ jobs:
           nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
           nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
 
-      - name: ThirdParty cache.
-        uses: actions/cache@v6
+      # Caches are restored here and saved right after the libraries are built,
+      # so a failing app build never throws away hours of library work.
+      - name: Restore ThirdParty cache.
+        id: third-party
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.TBUILD }}\ThirdParty
           key: ${{ runner.OS }}-third-party-${{ env.CACHE_KEY }}
           restore-keys: ${{ runner.OS }}-third-party-
 
-      - name: Libraries cache.
-        uses: actions/cache@v6
+      - name: Restore Libraries cache.
+        id: libs
+        uses: actions/cache/restore@v6
         with:
           path: |
             ${{ env.LibrariesPath }}\*
@@ -97,8 +101,9 @@ jobs:
           key: ${{ runner.OS }}-x64-libs-${{ env.CACHE_KEY }}
           restore-keys: ${{ runner.OS }}-x64-libs-
 
-      - name: Qt cache.
-        uses: actions/cache@v6
+      - name: Restore Qt cache.
+        id: qt
+        uses: actions/cache/restore@v6
         with:
           path: |
             ${{ env.LibrariesPath }}\[qQ]t[_-]*
@@ -114,6 +119,34 @@ jobs:
       - name: Free up library sources.
         shell: bash
         run: find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' ')' -type f ')' -o -empty ')' -delete
+
+      - name: Save ThirdParty cache.
+        if: steps.third-party.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: ${{ runner.OS }}-third-party-${{ env.CACHE_KEY }}
+
+      - name: Save Libraries cache.
+        if: steps.libs.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\*
+            !${{ env.LibrariesPath }}\cache_keys
+            !${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-x64-libs-${{ env.CACHE_KEY }}
+
+      - name: Save Qt cache.
+        if: steps.qt.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-x64-qt6-${{ env.CACHE_KEY }}
 
       - name: Build AyuGram.
         env:
