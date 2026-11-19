@@ -67,19 +67,19 @@ namespace {
 	if (!name.isEmpty()) {
 		return UniquePath(folder, MaskDangerous(name));
 	}
-	const auto suffix = Core::MimeTypeForName(
-		document->mimeString()).preferredSuffix();
+	const auto patterns = Core::MimeTypeForName(
+		document->mimeString()).globPatterns();
+	auto extension = patterns.isEmpty() ? QString() : patterns.front();
+	extension.replace('*', QString());
+	if (!extension.startsWith('.') || extension.size() < 2) {
+		extension = u".bin"_q;
+	}
 	const auto prefix = document->isVideoFile()
 		? u"video"_q
 		: (document->isVoiceMessage() || document->isAudioFile())
 		? u"audio"_q
 		: u"file"_q;
-	return filedialogDefaultName(
-		prefix,
-		u"."_q + (suffix.isEmpty() ? u"bin"_q : suffix),
-		folder,
-		false,
-		date);
+	return filedialogDefaultName(prefix, extension, folder, false, date);
 }
 
 void ShowSaved(
