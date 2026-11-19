@@ -221,6 +221,12 @@ set(ayugram_files
         ayu/features/streamer_mode/streamer_mode.h
         ayu/features/game_mode/game_mode.cpp
         ayu/features/game_mode/game_mode.h
+        ayu/features/local_names/local_names.cpp
+        ayu/features/local_names/local_names.h
+        ayu/features/local_pins/local_pins.cpp
+        ayu/features/local_pins/local_pins.h
+        ayu/features/quick_save/quick_save.cpp
+        ayu/features/quick_save/quick_save.h
         ayu/features/screencast/screencast_quality.cpp
         ayu/features/screencast/screencast_quality.h
         ayu/features/templates/message_templates.cpp

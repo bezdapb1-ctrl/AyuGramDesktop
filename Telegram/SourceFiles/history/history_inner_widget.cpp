@@ -139,6 +139,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "ayu/ayu_settings.h"
 #include "ayu/features/filters/filters_cache_controller.h"
+#include "ayu/features/quick_save/quick_save.h"
 #include "ayu/ui/context_menu/context_menu.h"
 #include "ayu/ui/settings/filters/edit_filter.h"
 #include "ayu/utils/telegram_helpers.h"
@@ -3159,6 +3160,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			_menu->addAction(tr::lng_context_save_image(tr::now), base::fn_delayed(st::defaultDropdownMenu.menu.ripple.hideDuration, this, [=] {
 				savePhotoToFile(photo);
 			}), &st::menuIconSaveImage);
+			AyuFeatures::QuickSave::AddPhotoAction(_menu, photo, item, controller);
 			_menu->addAction(tr::lng_context_copy_image(tr::now), [=] {
 				copyContextImage(photo, itemId);
 			}, &st::menuIconCopy);
@@ -3216,6 +3218,11 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				Ui::Menu::CreateAddActionCallback(_menu),
 				item,
 				document,
+				controller);
+			AyuFeatures::QuickSave::AddDocumentAction(
+				_menu,
+				document,
+				item,
 				controller);
 			HistoryView::AddCopyFilename(
 				_menu,

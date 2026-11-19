@@ -56,6 +56,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_shared_media.h"
 
 // AyuGram includes
+#include "ayu/features/local_names/local_names.h"
 #include "ayu/ui/ayu_userpic.h"
 
 
@@ -294,9 +295,10 @@ Main::Account &PeerData::account() const {
 }
 
 void PeerData::updateNameDelayed(
-		const QString &newName,
+		const QString &serverName,
 		const QString &newNameOrPhone,
 		const QString &newUsername) {
+	const auto newName = AyuFeatures::LocalNames::Apply(this, serverName);
 	if (_name == newName && _nameVersion > 1) {
 		if (isUser()) {
 			if (asUser()->nameOrPhone == newNameOrPhone

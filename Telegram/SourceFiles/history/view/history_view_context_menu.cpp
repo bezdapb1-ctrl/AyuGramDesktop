@@ -124,6 +124,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "ayu/ayu_settings.h"
 #include "ayu/features/forward/ayu_forward.h"
+#include "ayu/features/quick_save/quick_save.h"
 #include "ayu/ui/context_menu/context_menu.h"
 
 
@@ -382,6 +383,11 @@ void AddPhotoActions(
 				&photo->session(),
 				[=] { SavePhotoToFile(photo); }),
 			&st::menuIconSaveImage);
+		AyuFeatures::QuickSave::AddPhotoAction(
+			menu,
+			photo,
+			item,
+			list->controller());
 		menu->addAction(tr::lng_context_copy_image(tr::now), [=] {
 			const auto item = photo->owner().message(contextId);
 			if (!list->showCopyMediaRestriction(item)) {
@@ -527,6 +533,13 @@ void AddDocumentActions(
 		}
 	}
 	AddSaveDocumentAction(menu, item, document, list);
+	if (item && !list->hasCopyMediaRestriction(item) && !ItemHasTtl(item)) {
+		AyuFeatures::QuickSave::AddDocumentAction(
+			menu,
+			document,
+			item,
+			list->controller());
+	}
 	AddCopyFilename(
 		menu,
 		document,

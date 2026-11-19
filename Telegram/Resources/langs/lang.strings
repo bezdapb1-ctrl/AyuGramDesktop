@@ -9070,6 +9070,18 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_ScreencastMaximum" = "Максимум — 60 FPS, 1080p";
 "ayu_MessageTemplates" = "Шаблоны сообщений";
 "ayu_MessageTemplatesPlaceholder" = "ключ = текст";
+"ayu_LocalNameAdd" = "Переименовать для себя";
+"ayu_LocalNameEdit" = "Изменить своё имя";
+"ayu_LocalNameTitle" = "Своё имя";
+"ayu_LocalNamePlaceholder" = "Имя, которое видишь только ты";
+"ayu_LocalNameAbout" = "Имя хранится только на этом компьютере и видно только тебе. Настоящее имя:";
+"ayu_LocalNameReset" = "Сбросить";
+"ayu_LocalPinned" = "Закреплено локально: лимит Telegram исчерпан, этот закреп виден только в AyuGram на этом компьютере";
+"ayu_QuickSave" = "Скачать в Загрузки";
+"ayu_QuickSaveDone" = "Сохранено";
+"ayu_QuickSaveShow" = "Показать";
+"ayu_QuickSaveStarted" = "Скачивается в Загрузки";
+"ayu_QuickSaveFailed" = "Не удалось сохранить файл";
 "ayu_MessageTemplatesAbout" = "Один шаблон на строку: ;кс = го в кс. Напиши ключ и пробел в поле сообщения, и он заменится на текст. Перенос строки внутри текста — \\n. Работает, если включена автозамена эмодзи.";
 "ayu_EnableStreamerModeTray" = "Enable Streamer Mode";
 "ayu_DisableStreamerModeTray" = "Disable Streamer Mode";

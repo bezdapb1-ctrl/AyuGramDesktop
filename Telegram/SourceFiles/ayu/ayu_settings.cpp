@@ -1088,6 +1088,18 @@ void AyuSettings::setMessageTemplates(const QString &val) {
 	save();
 }
 
+void AyuSettings::setLocalPinnedChats(const QString &val) {
+	if (_localPinnedChats == val) return;
+	_localPinnedChats = val;
+	save();
+}
+
+void AyuSettings::setLocalNames(const QString &val) {
+	if (_localNames == val) return;
+	_localNames = val;
+	save();
+}
+
 void to_json(nlohmann::json &j, const AyuSettings &s) {
 	auto ghostAccounts = nlohmann::json::object();
 	for (const auto &[key, value] : s._ghostAccounts) {
@@ -1187,6 +1199,8 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"gameMode", s._gameMode.current()},
 		{"screencastQuality", s._screencastQuality.current()},
 		{"messageTemplates", s._messageTemplates.current()},
+		{"localPinnedChats", s._localPinnedChats},
+		{"localNames", s._localNames},
 		{"messageShotSettings", s._messageShotSettings}
 	};
 }
@@ -1294,6 +1308,8 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._gameMode = j.value("gameMode", defaults._gameMode.current());
 	s._screencastQuality = j.value("screencastQuality", defaults._screencastQuality.current());
 	s._messageTemplates = j.value("messageTemplates", defaults._messageTemplates.current());
+	s._localPinnedChats = j.value("localPinnedChats", QString());
+	s._localNames = j.value("localNames", QString());
 
 	if (j.contains("messageShotSettings") && j["messageShotSettings"].is_object()) {
 		j["messageShotSettings"].get_to(s._messageShotSettings);

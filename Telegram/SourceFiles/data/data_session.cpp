@@ -97,6 +97,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/ayu_settings.h"
 #include "ayu/data/messages_storage.h"
 #include "ayu/features/filters/filters_controller.h"
+#include "ayu/features/local_pins/local_pins.h"
 #include "ayu/utils/telegram_helpers.h"
 
 
@@ -2827,6 +2828,9 @@ void Session::applyPinnedChats(
 		});
 	}
 	chatsList(folder)->pinned()->applyList(this, list);
+	if (!folder) {
+		AyuFeatures::LocalPins::Reapply(this, true);
+	}
 	notifyPinnedDialogsOrderUpdated();
 }
 
@@ -2850,6 +2854,9 @@ void Session::applyDialogs(
 	}
 	if (requestFolder && count) {
 		requestFolder->chatsList()->setCloudListSize(*count);
+	}
+	if (!requestFolder) {
+		AyuFeatures::LocalPins::Reapply(this, false);
 	}
 }
 
@@ -2926,7 +2933,11 @@ bool Session::pinnedCanPin(not_null<Dialogs::Entry*> entry) const {
 		return pinnedChatsOrder(forum).size() < pinnedChatsLimit(forum);
 	} else {
 		const auto folder = entry->folder();
-		return pinnedChatsOrder(folder).size() < pinnedChatsLimit(folder);
+		const auto local = folder
+			? 0
+			: AyuFeatures::LocalPins::CountPinned(this);
+		return int(pinnedChatsOrder(folder).size()) - local
+			< pinnedChatsLimit(folder);
 	}
 }
 
@@ -2977,7 +2988,8 @@ rpl::producer<int> Session::maxPinnedChatsLimitValue(
 	) | rpl::map([folder, limits = Data::PremiumLimits(_session)] {
 		return folder
 			? limits.dialogsFolderPinnedPremium()
-			: limits.dialogsPinnedPremium();
+			: (limits.dialogsPinnedPremium()
+				+ AyuFeatures::LocalPins::kReserve);
 	});
 }
 

@@ -356,6 +356,8 @@ public:
 	[[nodiscard]] bool gameMode() const { return _gameMode.current(); }
 	[[nodiscard]] int screencastQuality() const { return _screencastQuality.current(); }
 	[[nodiscard]] const QString &messageTemplates() const { return _messageTemplates.current(); }
+	[[nodiscard]] const QString &localPinnedChats() const { return _localPinnedChats; }
+	[[nodiscard]] const QString &localNames() const { return _localNames; }
 
 	void setSaveDeletedMessages(bool val);
 	void setSaveMessagesHistory(bool val);
@@ -446,6 +448,8 @@ public:
 	void setGameMode(bool val);
 	void setScreencastQuality(int val);
 	void setMessageTemplates(const QString &val);
+	void setLocalPinnedChats(const QString &val);
+	void setLocalNames(const QString &val);
 
 	[[nodiscard]] rpl::producer<bool> useGlobalGhostModeValue() const { return _useGlobalGhostMode.value(); }
 	[[nodiscard]] rpl::producer<bool> useGlobalGhostModeChanges() const { return _useGlobalGhostMode.changes(); }
@@ -723,6 +727,8 @@ private:
 	rpl::variable<bool> _gameMode = true;
 	rpl::variable<int> _screencastQuality = 1; // 0 - standard, 1 - smooth, 2 - maximum
 	rpl::variable<QString> _messageTemplates;
+	QString _localPinnedChats;
+	QString _localNames;
 
 	rpl::variable<bool> _useGlobalGhostMode = true;
 	std::map<uint64, std::unique_ptr<GhostModeAccountSettings>> _ghostAccounts;

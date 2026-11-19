@@ -113,6 +113,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/ayu_worker.h"
 #include "ayu/utils/telegram_helpers.h"
 #include "ayu/features/forward/ayu_forward.h"
+#include "ayu/features/local_pins/local_pins.h"
 
 
 namespace {
@@ -428,10 +429,13 @@ void ApiWrap::savePinnedOrder(Data::Folder *folder) {
 	};
 	auto peers = QVector<MTPInputDialogPeer>();
 	peers.reserve(order.size());
-	ranges::transform(
-		order,
-		ranges::back_inserter(peers),
-		input);
+	for (const auto &key : order) {
+		if (const auto history = key.history()
+			; !folder && history && AyuFeatures::LocalPins::IsLocal(history)) {
+			continue;
+		}
+		peers.push_back(input(key));
+	}
 	request(MTPmessages_ReorderPinnedDialogs(
 		MTP_flags(MTPmessages_ReorderPinnedDialogs::Flag::f_force),
 		MTP_int(folder ? folder->id() : 0),

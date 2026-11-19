@@ -144,6 +144,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_ayu_icons.h"
 #include "ayu/ui/context_menu/context_menu.h"
 #include "ayu/features/forward/ayu_forward.h"
+#include "ayu/features/local_names/local_names.h"
+#include "ayu/features/local_pins/local_pins.h"
 
 
 namespace Window {
@@ -415,6 +417,10 @@ bool PinnedLimitReached(
 		history->session().api().savePinnedOrder(folder);
 	} else if (folder) {
 		controller->show(Box(FolderPinsLimitBox, &history->session()));
+	} else if (AyuFeatures::LocalPins::CanPinLocally(history)) {
+		AyuFeatures::LocalPins::Toggle(history, true);
+		controller->showToast(tr::ayu_LocalPinned(tr::now));
+		controller->content()->dialogsToUp();
 	} else {
 		controller->show(Box(PinsLimitBox, &history->session()));
 	}
@@ -443,6 +449,14 @@ void TogglePinnedThread(
 	}
 	const auto owner = &entry->owner();
 	const auto isPinned = !entry->isPinnedDialog(FilterId());
+	if (const auto history = entry->asHistory()
+		; history && !isPinned && AyuFeatures::LocalPins::IsLocal(history)) {
+		AyuFeatures::LocalPins::Toggle(history, false);
+		if (onToggled) {
+			onToggled();
+		}
+		return;
+	}
 	if (isPinned && PinnedLimitReached(controller, entry)) {
 		return;
 	}
@@ -1914,6 +1928,7 @@ void Filler::fillContextMenuActions() {
 	addToggleUnreadMark();
 	addToggleTopicClosed();
 	addToggleFolder();
+	AyuFeatures::LocalNames::AddMenuAction(_peer, _controller, _addAction);
 	if (const auto user = _peer->asUser()) {
 		if (!user->isContact()) {
 			addBlockUser();
@@ -1934,6 +1949,7 @@ void Filler::fillHistoryActions() {
 	addInfo();
 	AyuUi::AddJumpToBeginningAction(_peer, _thread, _controller, _addAction);
 	AyuUi::AddOpenChannelAction(_peer, _controller, _addAction);
+	AyuFeatures::LocalNames::AddMenuAction(_peer, _controller, _addAction);
 	addViewAsTopics();
 	addManageChat();
 	addStoryArchive();
@@ -1960,6 +1976,7 @@ void Filler::fillProfileActions() {
 	addNewContact();
 	addShareContact();
 	addEditContact();
+	AyuFeatures::LocalNames::AddMenuAction(_peer, _controller, _addAction);
 	addBotToGroup();
 	addNewMembers();
 	addSendGift();
