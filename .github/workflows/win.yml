@@ -35,8 +35,8 @@ jobs:
         shell: pwsh
         run: |
           Get-Service docker -ErrorAction SilentlyContinue | Stop-Service -ErrorAction SilentlyContinue
-          Remove-Item "C:\Android\android-sdk", "C:\Program Files\dotnet", "C:\Miniconda", "C:\msys64", "$env:USERPROFILE\.cargo", "$env:USERPROFILE\.rustup", "C:\Program Files\PostgreSQL", "C:\Program Files\MongoDB", "C:\Program Files\MySQL", "C:\ghcup", "C:\Program Files\LLVM", "C:\vcpkg", "C:\selenium", "C:\Program Files\R" -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item C:\hostedtoolcache\windows\Go*, C:\hostedtoolcache\windows\Ruby*, C:\hostedtoolcache\windows\PyPy*, C:\hostedtoolcache\windows\Java_* -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item "C:\Android\android-sdk", "C:\Program Files\dotnet", "C:\Miniconda", "C:\msys64", "$env:USERPROFILE\.cargo", "$env:USERPROFILE\.rustup", "C:\Program Files\PostgreSQL", "C:\Program Files\MongoDB", "C:\Program Files\MySQL", "C:\ghcup", "C:\Program Files\LLVM", "C:\vcpkg", "C:\selenium", "C:\Program Files\R", "C:\Program Files\Microsoft SQL Server" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item C:\hostedtoolcache\windows\Go*, C:\hostedtoolcache\windows\Ruby*, C:\hostedtoolcache\windows\PyPy*, C:\hostedtoolcache\windows\Java_*, C:\hostedtoolcache\windows\CodeQL -Recurse -Force -ErrorAction SilentlyContinue
           Write-Host ('{0:N1} GB free' -f ((Get-PSDrive C).Free / 1GB))
           exit 0
 
@@ -67,6 +67,7 @@ jobs:
           sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake
           echo "$(sha256sum $TBUILD/tdesktop/$PREPARE_PATH | awk '{ print $1 }')" >> CACHE_KEY.txt
           echo "$SDK" >> CACHE_KEY.txt
+          echo "release-libs" >> CACHE_KEY.txt
           echo "CACHE_KEY=$(sha256sum CACHE_KEY.txt | awk '{ print $1 }')" >> $GITHUB_ENV
           git config --global user.email "ci@example.com"
           git config --global user.name "CI"
@@ -119,7 +120,7 @@ jobs:
       - name: Libraries.
         run: |
           set CARGO_INCREMENTAL=0
-          %TBUILD%\tdesktop\Telegram\build\prepare\win.bat skip-release silent qt6
+          %TBUILD%\tdesktop\Telegram\build\prepare\win.bat silent qt6
 
       - name: Free up library sources.
         shell: bash
