@@ -1,0 +1,113 @@
+diff --git a/tgcalls/desktop_capturer/DesktopCaptureSource.cpp b/tgcalls/desktop_capturer/DesktopCaptureSource.cpp
+index f275910..e3de6f3 100644
+--- a/tgcalls/desktop_capturer/DesktopCaptureSource.cpp
++++ b/tgcalls/desktop_capturer/DesktopCaptureSource.cpp
+@@ -8,7 +8,33 @@
+ 
+ #include "tgcalls/desktop_capturer/DesktopCaptureSource.h"
+ 
++#include <atomic>
++
+ namespace tgcalls {
++namespace {
++
++std::atomic<int> OverrideFps = 0;
++std::atomic<int> OverrideWidth = 0;
++std::atomic<int> OverrideHeight = 0;
++std::atomic<int> OverrideBitrateKbps = 0;
++
++} // namespace
++
++void SetDesktopCaptureOverrides(DesktopCaptureOverrides value) {
++    OverrideFps = value.fps;
++    OverrideWidth = value.width;
++    OverrideHeight = value.height;
++    OverrideBitrateKbps = value.maxBitrateKbps;
++}
++
++DesktopCaptureOverrides GetDesktopCaptureOverrides() {
++    return DesktopCaptureOverrides{
++        OverrideFps.load(),
++        OverrideWidth.load(),
++        OverrideHeight.load(),
++        OverrideBitrateKbps.load(),
++    };
++}
+ 
+ std::string DesktopCaptureSourceData::cachedKey() const {
+     return std::to_string(aspectSize.width)
+diff --git a/tgcalls/desktop_capturer/DesktopCaptureSource.h b/tgcalls/desktop_capturer/DesktopCaptureSource.h
+index 4399ad3..242b26b 100644
+--- a/tgcalls/desktop_capturer/DesktopCaptureSource.h
++++ b/tgcalls/desktop_capturer/DesktopCaptureSource.h
+@@ -31,6 +31,17 @@ struct DesktopSize {
+ 	int height = 0;
+ };
+ 
++// User overrides for screen sharing (0 = keep the library default).
++struct DesktopCaptureOverrides {
++	int fps = 0;
++	int width = 0;
++	int height = 0;
++	int maxBitrateKbps = 0;
++};
++
++void SetDesktopCaptureOverrides(DesktopCaptureOverrides value);
++DesktopCaptureOverrides GetDesktopCaptureOverrides();
++
+ struct DesktopCaptureSourceData {
+ 	DesktopSize aspectSize;
+ 	double fps = 24.;
+diff --git a/tgcalls/group/GroupInstanceCustomImpl.cpp b/tgcalls/group/GroupInstanceCustomImpl.cpp
+index 762d1b9..f44d65e 100644
+--- a/tgcalls/group/GroupInstanceCustomImpl.cpp
++++ b/tgcalls/group/GroupInstanceCustomImpl.cpp
+@@ -1,4 +1,5 @@
+ #include "GroupInstanceCustomImpl.h"
++#include "tgcalls/desktop_capturer/DesktopCaptureSource.h"
+ 
+ #include <memory>
+ #include <iomanip>
+@@ -2610,6 +2611,14 @@ public:
+                 } else {
+                     rtpParameters.encodings[0].max_bitrate_bps = (800000 + 100000) * 2;
+                 }
++                const auto overrideKbps = GetDesktopCaptureOverrides().maxBitrateKbps;
++                if (overrideKbps > 0 && !rtpParameters.encodings.empty()) {
++                    auto &top = rtpParameters.encodings.back();
++                    top.max_bitrate_bps = overrideKbps * 1000;
++                    if (top.min_bitrate_bps && *top.min_bitrate_bps > overrideKbps * 1000) {
++                        top.min_bitrate_bps = overrideKbps * 500;
++                    }
++                }
+ 
+                 _outgoingVideoChannel->send_channel()->SetRtpSendParameters(_outgoingVideoSsrcs.simulcastLayers[0].ssrc, rtpParameters);
+             });
+diff --git a/tgcalls/platform/tdesktop/VideoCapturerInterfaceImpl.cpp b/tgcalls/platform/tdesktop/VideoCapturerInterfaceImpl.cpp
+index be86854..23a9ad1 100644
+--- a/tgcalls/platform/tdesktop/VideoCapturerInterfaceImpl.cpp
++++ b/tgcalls/platform/tdesktop/VideoCapturerInterfaceImpl.cpp
+@@ -45,9 +45,12 @@ VideoCapturerInterfaceImpl::VideoCapturerInterfaceImpl(
+ 	else
+ #else
+ 	if (const auto source = DesktopCaptureSourceForKey(deviceId)) {
++		const auto overrides = GetDesktopCaptureOverrides();
++		const auto width = overrides.width > 0 ? overrides.width : 1280;
++		const auto height = overrides.height > 0 ? overrides.height : 720;
+ 		const auto data = DesktopCaptureSourceData{
+-			/*.aspectSize = */{ 1280, 720 },
+-			/*.fps = */24.,
++			/*.aspectSize = */{ width, height },
++			/*.fps = */(overrides.fps > 0 ? double(overrides.fps) : 24.),
+ 			/*.captureMouse = */true,
+ 		};
+ 		_desktopCapturer = std::make_unique<DesktopCaptureSourceHelper>(
+@@ -55,7 +58,7 @@ VideoCapturerInterfaceImpl::VideoCapturerInterfaceImpl(
+ 			data);
+ 		_desktopCapturer->setOutput(_sink);
+ 		_desktopCapturer->start();
+-		outResolution = { 1280, 960 };
++		outResolution = { width, height * 4 / 3 };
+ 	} else if (!ShouldBeDesktopCapture(deviceId))
+ #endif // TGCALLS_UWP_DESKTOP
+ 	{

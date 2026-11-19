@@ -9061,6 +9061,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_GhostModeSwitchedToGlobalSettings" = "Switched to same settings for all accounts.";
 "ayu_GhostModeSwitchedToIndividualSettings" = "Switched to individual settings for each account.";
 "ayu_StreamerModeToggle" = "Streamer Mode";
+"ayu_ModHeader" = "Мои фишки";
+"ayu_ModDescription" = "Игровой режим: пока запущена полноэкранная игра, AyuGram отключает анимации, стикеры и гифки и уступает игре процессор. Качество демки влияет на трансляцию экрана в звонках и войсах, высокое качество сильнее нагружает процессор.";
+"ayu_GameMode" = "Игровой режим";
+"ayu_ScreencastQuality" = "Качество демки";
+"ayu_ScreencastStandard" = "Стандарт — 24 FPS, 720p";
+"ayu_ScreencastSmooth" = "Плавно — 30 FPS, 1080p";
+"ayu_ScreencastMaximum" = "Максимум — 60 FPS, 1080p";
+"ayu_MessageTemplates" = "Шаблоны сообщений";
+"ayu_MessageTemplatesPlaceholder" = "ключ = текст";
+"ayu_MessageTemplatesAbout" = "Один шаблон на строку: ;кс = го в кс. Напиши ключ и пробел в поле сообщения, и он заменится на текст. Перенос строки внутри текста — \\n. Работает, если включена автозамена эмодзи.";
 "ayu_EnableStreamerModeTray" = "Enable Streamer Mode";
 "ayu_DisableStreamerModeTray" = "Disable Streamer Mode";
 "ayu_EditsHistoryTitle" = "Edits History";

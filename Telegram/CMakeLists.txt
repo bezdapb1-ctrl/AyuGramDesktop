@@ -219,6 +219,12 @@ set(ayugram_files
         ayu/features/streamer_mode/platform/platform_streamer_mode.h
         ayu/features/streamer_mode/streamer_mode.cpp
         ayu/features/streamer_mode/streamer_mode.h
+        ayu/features/game_mode/game_mode.cpp
+        ayu/features/game_mode/game_mode.h
+        ayu/features/screencast/screencast_quality.cpp
+        ayu/features/screencast/screencast_quality.h
+        ayu/features/templates/message_templates.cpp
+        ayu/features/templates/message_templates.h
         ayu/features/message_shot/message_shot.cpp
         ayu/features/message_shot/message_shot.h
         ayu/features/message_shot/message_shot_theme_state.cpp

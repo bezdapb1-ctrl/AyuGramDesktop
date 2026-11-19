@@ -112,6 +112,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/ayu_infra.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/features/streamer_mode/streamer_mode.h"
+#include "ayu/features/game_mode/game_mode.h"
+#include "ayu/features/screencast/screencast_quality.h"
 
 
 namespace Core {
@@ -361,11 +363,14 @@ void Application::run() {
 		_mediaControlsManager = std::make_unique<MediaControlsManager>();
 	}
 
+	AyuFeatures::GameMode::start();
+	AyuFeatures::Screencast::start();
 	rpl::combine(
 		_batterySaving->value(),
-		settings().ignoreBatterySavingValue()
-	) | rpl::on_next([=](bool saving, bool ignore) {
-		PowerSaving::SetForceAll(saving && !ignore);
+		settings().ignoreBatterySavingValue(),
+		AyuFeatures::GameMode::activeValue()
+	) | rpl::on_next([=](bool saving, bool ignore, bool gaming) {
+		PowerSaving::SetForceAll((saving && !ignore) || gaming);
 	}, _lifetime);
 
 	style::ShortAnimationPlaying(

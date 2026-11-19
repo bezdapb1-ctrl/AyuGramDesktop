@@ -26,6 +26,12 @@
 #include "ui/boxes/confirm_box.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/buttons.h"
+#include "ui/layers/generic_box.h"
+#include "ui/widgets/fields/input_field.h"
+#include "ui/widgets/labels.h"
+#include "styles/style_widgets.h"
+#include "styles/style_boxes.h"
+#include "styles/style_layers.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
 #include "window/themes/window_theme.h"
@@ -193,6 +199,68 @@ void BuildCrashReporting(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 #endif
 }
 
+void ShowTemplatesBox(not_null<Window::SessionController*> controller) {
+	controller->show(Box([](not_null<Ui::GenericBox*> box) {
+		box->setTitle(tr::ayu_MessageTemplates());
+		box->setWidth(st::boxWideWidth);
+		const auto field = box->addRow(object_ptr<Ui::InputField>(
+			box,
+			st::newGroupDescription,
+			Ui::InputField::Mode::MultiLine,
+			tr::ayu_MessageTemplatesPlaceholder(),
+			AyuSettings::getInstance().messageTemplates()));
+		box->addRow(object_ptr<Ui::FlatLabel>(
+			box,
+			tr::ayu_MessageTemplatesAbout(),
+			st::boxDividerLabel));
+		box->setFocusCallback([=] { field->setFocusFast(); });
+		box->addButton(tr::lng_settings_save(), [=] {
+			AyuSettings::getInstance().setMessageTemplates(
+				field->getLastText().trimmed());
+			box->closeBox();
+		});
+		box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
+	}));
+}
+
+void BuildModFeatures(SectionBuilder &builder, AyuSectionBuilder &ayu) {
+	const auto controller = builder.controller();
+
+	builder.addSkip();
+	builder.addSubsectionTitle(tr::ayu_ModHeader());
+
+	ayu.addSettingToggle({
+		.id = u"ayu/gameMode"_q,
+		.title = tr::ayu_GameMode(),
+		.getter = &AyuSettings::gameMode,
+		.setter = &AyuSettings::setGameMode,
+		.icon = { &st::menuIconPowerUsage },
+	});
+	ayu.addChooseButton({
+		.id = u"ayu/screencastQuality"_q,
+		.title = tr::ayu_ScreencastQuality(),
+		.boxTitle = tr::ayu_ScreencastQuality(),
+		.initialSelection = AyuSettings::getInstance().screencastQuality(),
+		.options = {
+			tr::ayu_ScreencastStandard(tr::now),
+			tr::ayu_ScreencastSmooth(tr::now),
+			tr::ayu_ScreencastMaximum(tr::now),
+		},
+		.setter = [](int index) {
+			AyuSettings::getInstance().setScreencastQuality(index);
+		},
+		.icon = { &st::menuIconVideoChat },
+	});
+	builder.addButton({
+		.id = u"ayu/messageTemplates"_q,
+		.title = tr::ayu_MessageTemplates(),
+		.icon = { &st::menuIconEdit },
+		.onClick = [=] { ShowTemplatesBox(controller); },
+	});
+	builder.addSkip();
+	builder.addDividerText(tr::ayu_ModDescription());
+}
+
 void BuildOtherThings(SectionBuilder &builder) {
 	const auto controller = builder.controller();
 
@@ -233,6 +301,7 @@ const auto kMeta = BuildHelper({
 }, [](SectionBuilder &builder) {
 	auto ayu = AyuSectionBuilder(builder);
 
+	BuildModFeatures(builder, ayu);
 	builder.addSkip();
 	BuildDonations(builder);
 	BuildCrashReporting(builder, ayu);

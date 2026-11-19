@@ -53,6 +53,11 @@ jobs:
           submodules: recursive
           path: ${{ env.TBUILD }}\tdesktop
 
+      - name: Apply mod patches to submodules.
+        run: |
+          cd /d %TBUILD%\tdesktop\Telegram\ThirdParty\tgcalls
+          git apply --ignore-whitespace --whitespace=nowarn %TBUILD%\tdesktop\Telegram\build\ayu_patches\tgcalls_screencast.patch
+
       - name: First set up.
         shell: bash
         run: |

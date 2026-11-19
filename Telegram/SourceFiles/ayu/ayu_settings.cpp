@@ -518,6 +518,7 @@ void AyuSettings::validate() {
 	validateRange(_messageBubbleRadius, 0, 16, defaults._messageBubbleRadius);
 	validateRange(_wideMultiplier, 0.5, 4.0, defaults._wideMultiplier);
 	validateRange(_avatarCorners, 0, AyuUiSettings::kMaxAvatarCorners, defaults._avatarCorners);
+	validateRange(_screencastQuality, 0, 2, defaults._screencastQuality);
 
 	const auto embeddedType = _messageShotSettings._embeddedThemeType.current();
 	auto embeddedTypeValid = (embeddedType == -1) || (embeddedType >= 0 && embeddedType <= 3); // from Window::Theme::EmbeddedType::DayBlue to Window::Theme::EmbeddedType::NightGreen
@@ -1069,6 +1070,24 @@ void AyuSettings::setStreamerMode(bool val) {
 	save();
 }
 
+void AyuSettings::setGameMode(bool val) {
+	if (_gameMode.current() == val) return;
+	_gameMode = val;
+	save();
+}
+
+void AyuSettings::setScreencastQuality(int val) {
+	if (_screencastQuality.current() == val) return;
+	_screencastQuality = val;
+	save();
+}
+
+void AyuSettings::setMessageTemplates(const QString &val) {
+	if (_messageTemplates.current() == val) return;
+	_messageTemplates = val;
+	save();
+}
+
 void to_json(nlohmann::json &j, const AyuSettings &s) {
 	auto ghostAccounts = nlohmann::json::object();
 	for (const auto &[key, value] : s._ghostAccounts) {
@@ -1165,6 +1184,9 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"avatarCorners", s._avatarCorners.current()},
 		{"singleCornerRadius", s._singleCornerRadius.current()},
 		{"streamerMode", s._streamerMode.current()},
+		{"gameMode", s._gameMode.current()},
+		{"screencastQuality", s._screencastQuality.current()},
+		{"messageTemplates", s._messageTemplates.current()},
 		{"messageShotSettings", s._messageShotSettings}
 	};
 }
@@ -1269,6 +1291,9 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._avatarCorners = j.value("avatarCorners", defaults._avatarCorners.current());
 	s._singleCornerRadius = j.value("singleCornerRadius", defaults._singleCornerRadius.current());
 	s._streamerMode = j.value("streamerMode", defaults._streamerMode.current());
+	s._gameMode = j.value("gameMode", defaults._gameMode.current());
+	s._screencastQuality = j.value("screencastQuality", defaults._screencastQuality.current());
+	s._messageTemplates = j.value("messageTemplates", defaults._messageTemplates.current());
 
 	if (j.contains("messageShotSettings") && j["messageShotSettings"].is_object()) {
 		j["messageShotSettings"].get_to(s._messageShotSettings);
