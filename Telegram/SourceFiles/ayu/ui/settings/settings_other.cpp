@@ -9,7 +9,6 @@
 #include "lang_auto.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/features/chat_stats/chat_stats.h"
-#include "ayu/features/style_studio/style_studio.h"
 #include "ayu/ui/boxes/donate_qr_box.h"
 #include "ayu/ui/settings/ayu_builder.h"
 #include "ayu/ui/settings/settings_ayu_utils.h"
@@ -258,12 +257,6 @@ void BuildModFeatures(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.title = tr::ayu_MessageTemplates(),
 		.icon = { &st::menuIconEdit },
 		.onClick = [=] { ShowTemplatesBox(controller); },
-	});
-	builder.addButton({
-		.id = u"ayu/styleStudio"_q,
-		.title = tr::ayu_StyleStudio(),
-		.icon = { &st::menuIconPalette },
-		.onClick = [=] { AyuFeatures::StyleStudio::ShowBox(controller); },
 	});
 	builder.addButton({
 		.id = u"ayu/chatStats"_q,
