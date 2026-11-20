@@ -9065,9 +9065,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_ModDescription" = "Игровой режим: пока запущена полноэкранная игра, AyuGram отключает анимации, стикеры и гифки и уступает игре процессор. Качество демки влияет на трансляцию экрана в звонках и войсах, высокое качество сильнее нагружает процессор.";
 "ayu_GameMode" = "Игровой режим";
 "ayu_ScreencastQuality" = "Качество демки";
-"ayu_ScreencastStandard" = "Стандарт — 24 FPS, 720p";
-"ayu_ScreencastSmooth" = "Плавно — 30 FPS, 1080p";
-"ayu_ScreencastMaximum" = "Максимум — 60 FPS, 1080p";
+"ayu_ScreencastStandard" = "Стандарт — как в Telegram (24 FPS, до 1 Мбит/с)";
+"ayu_ScreencastSmooth" = "Плавно — 60 FPS, 720p, держит кадры";
+"ayu_ScreencastMaximum" = "Максимум — 60 FPS, 1080p, до 6 Мбит/с";
 "ayu_MessageTemplates" = "Шаблоны сообщений";
 "ayu_MessageTemplatesPlaceholder" = "ключ = текст";
 "ayu_LocalNameAdd" = "Переименовать для себя";

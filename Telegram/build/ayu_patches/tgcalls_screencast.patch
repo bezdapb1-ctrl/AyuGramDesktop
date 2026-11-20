@@ -1,8 +1,8 @@
 diff --git a/tgcalls/desktop_capturer/DesktopCaptureSource.cpp b/tgcalls/desktop_capturer/DesktopCaptureSource.cpp
-index f275910..e3de6f3 100644
+index f275910..39d887f 100644
 --- a/tgcalls/desktop_capturer/DesktopCaptureSource.cpp
 +++ b/tgcalls/desktop_capturer/DesktopCaptureSource.cpp
-@@ -8,7 +8,33 @@
+@@ -8,7 +8,63 @@
  
  #include "tgcalls/desktop_capturer/DesktopCaptureSource.h"
  
@@ -15,14 +15,42 @@ index f275910..e3de6f3 100644
 +std::atomic<int> OverrideWidth = 0;
 +std::atomic<int> OverrideHeight = 0;
 +std::atomic<int> OverrideBitrateKbps = 0;
++std::atomic<int> OverrideStartBitrateKbps = 0;
++std::atomic<int> OverrideDegradation = 0;
++
++std::atomic<long long> StatsFrames = 0;
++std::atomic<int> StatsWidth = 0;
++std::atomic<int> StatsHeight = 0;
++std::atomic<int> StatsSendBitrateKbps = 0;
 +
 +} // namespace
++
++void ReportDesktopCaptureFrame(int width, int height) {
++    ++StatsFrames;
++    StatsWidth = width;
++    StatsHeight = height;
++}
++
++void ReportDesktopCaptureSendBitrate(int kbps) {
++    StatsSendBitrateKbps = kbps;
++}
++
++DesktopCaptureStats GetDesktopCaptureStats() {
++    return DesktopCaptureStats{
++        StatsFrames.load(),
++        StatsWidth.load(),
++        StatsHeight.load(),
++        StatsSendBitrateKbps.load(),
++    };
++}
 +
 +void SetDesktopCaptureOverrides(DesktopCaptureOverrides value) {
 +    OverrideFps = value.fps;
 +    OverrideWidth = value.width;
 +    OverrideHeight = value.height;
 +    OverrideBitrateKbps = value.maxBitrateKbps;
++    OverrideStartBitrateKbps = value.startBitrateKbps;
++    OverrideDegradation = value.degradation;
 +}
 +
 +DesktopCaptureOverrides GetDesktopCaptureOverrides() {
@@ -31,16 +59,18 @@ index f275910..e3de6f3 100644
 +        OverrideWidth.load(),
 +        OverrideHeight.load(),
 +        OverrideBitrateKbps.load(),
++        OverrideStartBitrateKbps.load(),
++        OverrideDegradation.load(),
 +    };
 +}
  
  std::string DesktopCaptureSourceData::cachedKey() const {
      return std::to_string(aspectSize.width)
 diff --git a/tgcalls/desktop_capturer/DesktopCaptureSource.h b/tgcalls/desktop_capturer/DesktopCaptureSource.h
-index 4399ad3..242b26b 100644
+index 4399ad3..63fd662 100644
 --- a/tgcalls/desktop_capturer/DesktopCaptureSource.h
 +++ b/tgcalls/desktop_capturer/DesktopCaptureSource.h
-@@ -31,6 +31,17 @@ struct DesktopSize {
+@@ -31,6 +31,31 @@ struct DesktopSize {
  	int height = 0;
  };
  
@@ -50,16 +80,169 @@ index 4399ad3..242b26b 100644
 +	int width = 0;
 +	int height = 0;
 +	int maxBitrateKbps = 0;
++	int startBitrateKbps = 0; // Where bandwidth estimation starts (default ~400).
++	int degradation = 0; // 0 = default, 1 = keep frame rate, 2 = balanced.
 +};
 +
 +void SetDesktopCaptureOverrides(DesktopCaptureOverrides value);
 +DesktopCaptureOverrides GetDesktopCaptureOverrides();
 +
++// Live numbers of the current screen capture, for the client log.
++struct DesktopCaptureStats {
++	long long frames = 0; // Frames delivered since the app started.
++	int width = 0;
++	int height = 0;
++	int sendBitrateKbps = 0; // Send bandwidth estimate of the screencast.
++};
++
++void ReportDesktopCaptureFrame(int width, int height);
++void ReportDesktopCaptureSendBitrate(int kbps);
++DesktopCaptureStats GetDesktopCaptureStats();
++
  struct DesktopCaptureSourceData {
  	DesktopSize aspectSize;
  	double fps = 24.;
+diff --git a/tgcalls/desktop_capturer/DesktopCaptureSourceHelper.cpp b/tgcalls/desktop_capturer/DesktopCaptureSourceHelper.cpp
+index 8f32965..094ea8b 100644
+--- a/tgcalls/desktop_capturer/DesktopCaptureSourceHelper.cpp
++++ b/tgcalls/desktop_capturer/DesktopCaptureSourceHelper.cpp
+@@ -25,6 +25,16 @@
+ #include "system_wrappers/include/clock.h"
+ #include "api/video/i420_buffer.h"
+ #include "third_party/libyuv/include/libyuv.h"
++#include "rtc_base/time_utils.h"
++#include "tgcalls/desktop_capturer/DesktopCaptureSource.h"
++
++#ifdef WEBRTC_WIN
++#ifndef NOMINMAX
++#define NOMINMAX
++#endif // NOMINMAX
++#include <windows.h>
++#include <timeapi.h>
++#endif // WEBRTC_WIN
+ 
+ #ifdef WEBRTC_MAC
+ #import <QuartzCore/QuartzCore.h>
+@@ -116,7 +126,11 @@ public:
+     void loop();
+     void setOnFatalError(std::function<void ()>);
+     void setOnPause(std::function<void (bool)>);
++    ~DesktopSourceRenderer();
+ private:
++    void acquirePreciseTimer();
++    void releasePreciseTimer();
++
+     CaptureScheduler &_scheduler;
+     std::unique_ptr<webrtc::DesktopCapturer> _capturer;
+     SourceFrameCallbackImpl _callback;
+@@ -127,6 +141,8 @@ private:
+     bool _fatalError = false;
+     bool _currentlyOnPause = false;
+     double _delayMs = 0.;
++    int64_t _nextCaptureUs = 0;
++    bool _preciseTimer = false;
+ 
+ };
+ 
+@@ -159,6 +175,21 @@ void SourceFrameCallbackImpl::OnCaptureResult(
+         || frameSize.height() >= size_.height * 2)
+         ? DesktopSize{ frameSize.width() / 2, frameSize.height() / 2 }
+         : DesktopSize{ frameSize.width(), frameSize.height() };
++    if (const auto overrides = GetDesktopCaptureOverrides()
++        ; overrides.width > 0
++        && overrides.height > 0
++        && (frameSize.width() > size_.width
++            || frameSize.height() > size_.height)) {
++        // A chosen quality: fit the frame into the requested size exactly,
++        // not only when the screen is twice as large.
++        const auto scale = (std::min)(
++            double(size_.width) / frameSize.width(),
++            double(size_.height) / frameSize.height());
++        fittedSize = DesktopSize{
++            int(frameSize.width() * scale),
++            int(frameSize.height() * scale),
++        };
++    }
+ 
+     fittedSize.width -= (fittedSize.width % 4);
+     fittedSize.height -= (fittedSize.height % 4);
+@@ -219,6 +250,7 @@ void SourceFrameCallbackImpl::OnCaptureResult(
+ 
+ 	assert(i420Result == 0);
+ 	(void)i420Result;
++	ReportDesktopCaptureFrame(width, height);
+ 	webrtc::VideoFrame nativeVideoFrame = webrtc::VideoFrame(
+ 		i420_buffer_,
+ 		webrtc::kVideoRotation_0,
+@@ -313,9 +345,34 @@ void DesktopSourceRenderer::start() {
+ 
+     _isRunning = true;
+     _timerGuard = std::make_shared<bool>(true);
++    _nextCaptureUs = 0;
++    acquirePreciseTimer();
+     loop();
+ }
+ 
++DesktopSourceRenderer::~DesktopSourceRenderer() {
++    releasePreciseTimer();
++}
++
++// The default Windows timer ticks every ~15.6 ms, so a 16 ms delay often
++// becomes ~31 ms and 60 fps turns into ~30. Ask for 1 ms while capturing.
++void DesktopSourceRenderer::acquirePreciseTimer() {
++#ifdef WEBRTC_WIN
++    if (!_preciseTimer) {
++        _preciseTimer = (timeBeginPeriod(1) == TIMERR_NOERROR);
++    }
++#endif // WEBRTC_WIN
++}
++
++void DesktopSourceRenderer::releasePreciseTimer() {
++#ifdef WEBRTC_WIN
++    if (_preciseTimer) {
++        timeEndPeriod(1);
++        _preciseTimer = false;
++    }
++#endif // WEBRTC_WIN
++}
++
+ void DesktopSourceRenderer::stop() {
+ //    if (_isRunning) {
+ //        GlobalCount--;
+@@ -326,6 +383,7 @@ void DesktopSourceRenderer::stop() {
+ //    }
+     _isRunning = false;
+     _timerGuard = nullptr;
++    releasePreciseTimer();
+ }
+ 
+ void DesktopSourceRenderer::loop() {
+@@ -333,9 +391,22 @@ void DesktopSourceRenderer::loop() {
+         return;
+     }
+ 
++    const auto periodUs = int64_t(_delayMs * 1000.);
++    if (!_nextCaptureUs) {
++        _nextCaptureUs = rtc::TimeMicros();
++    }
+     _capturer->CaptureFrame();
++    _nextCaptureUs += periodUs;
++    const auto now = rtc::TimeMicros();
++    if (_nextCaptureUs < now - periodUs) {
++        // Fell behind by more than a frame: skip ahead instead of bursting.
++        _nextCaptureUs = now;
++    }
++    const auto delayMs = int((_nextCaptureUs > now)
++        ? ((_nextCaptureUs - now) / 1000)
++        : 0);
+     const auto guard = std::weak_ptr<bool>(_timerGuard);
+-    _scheduler.runDelayed(_delayMs, [=, this] {
++    _scheduler.runDelayed(delayMs, [=, this] {
+         if (guard.lock()) {
+             loop();
+         }
 diff --git a/tgcalls/group/GroupInstanceCustomImpl.cpp b/tgcalls/group/GroupInstanceCustomImpl.cpp
-index 762d1b9..f44d65e 100644
+index 762d1b9..7e6e3b7 100644
 --- a/tgcalls/group/GroupInstanceCustomImpl.cpp
 +++ b/tgcalls/group/GroupInstanceCustomImpl.cpp
 @@ -1,4 +1,5 @@
@@ -68,7 +251,17 @@ index 762d1b9..f44d65e 100644
  
  #include <memory>
  #include <iomanip>
-@@ -2610,6 +2611,14 @@ public:
+@@ -2435,6 +2436,9 @@ public:
+                 if (strong->_outgoingVideoChannel) {
+                     bitrateNorm = 600.0f;
+                 }
++                if (strong->_videoContentType == VideoContentType::Screencast) {
++                    ReportDesktopCaptureSendBitrate(int(sendBitrateKbps));
++                }
+ 
+                 float signalBarsNorm = 4.0f;
+                 float adjustedQuality = sendBitrateKbps / bitrateNorm;
+@@ -2610,6 +2614,20 @@ public:
                  } else {
                      rtpParameters.encodings[0].max_bitrate_bps = (800000 + 100000) * 2;
                  }
@@ -80,9 +273,33 @@ index 762d1b9..f44d65e 100644
 +                        top.min_bitrate_bps = overrideKbps * 500;
 +                    }
 +                }
++                const auto degradation = GetDesktopCaptureOverrides().degradation;
++                if (degradation == 1) {
++                    rtpParameters.degradation_preference = webrtc::DegradationPreference::MAINTAIN_FRAMERATE;
++                } else if (degradation == 2) {
++                    rtpParameters.degradation_preference = webrtc::DegradationPreference::BALANCED;
++                }
  
                  _outgoingVideoChannel->send_channel()->SetRtpSendParameters(_outgoingVideoSsrcs.simulcastLayers[0].ssrc, rtpParameters);
              });
+@@ -3203,6 +3221,17 @@ public:
+             }
+             if (_videoContentType == VideoContentType::Screencast) {
+                 preferences.max_bitrate_bps = std::max(preferences.min_bitrate_bps, (1020 + 32) * 1000);
++                const auto overrides = GetDesktopCaptureOverrides();
++                if (overrides.maxBitrateKbps > 0) {
++                    preferences.max_bitrate_bps = std::max(
++                        preferences.min_bitrate_bps,
++                        (overrides.maxBitrateKbps + 32) * 1000);
++                }
++                if (resetStartBitrate && overrides.startBitrateKbps > 0) {
++                    preferences.start_bitrate_bps = std::max(
++                        preferences.start_bitrate_bps,
++                        overrides.startBitrateKbps * 1000);
++                }
+             } else {
+                 preferences.max_bitrate_bps = std::max(preferences.min_bitrate_bps, (1020 + 32) * 1000);
+             }
 diff --git a/tgcalls/platform/tdesktop/VideoCapturerInterfaceImpl.cpp b/tgcalls/platform/tdesktop/VideoCapturerInterfaceImpl.cpp
 index be86854..23a9ad1 100644
 --- a/tgcalls/platform/tdesktop/VideoCapturerInterfaceImpl.cpp
@@ -111,3 +328,69 @@ index be86854..23a9ad1 100644
  	} else if (!ShouldBeDesktopCapture(deviceId))
  #endif // TGCALLS_UWP_DESKTOP
  	{
+diff --git a/tgcalls/v2/InstanceV2Impl.cpp b/tgcalls/v2/InstanceV2Impl.cpp
+index 8159818..e72120e 100644
+--- a/tgcalls/v2/InstanceV2Impl.cpp
++++ b/tgcalls/v2/InstanceV2Impl.cpp
+@@ -1,4 +1,5 @@
+ #include "v2/InstanceV2Impl.h"
++#include "tgcalls/desktop_capturer/DesktopCaptureSource.h"
+ 
+ #include "LogSinkImpl.h"
+ #include "VideoCaptureInterfaceImpl.h"
+@@ -467,7 +468,8 @@ public:
+     _mainSsrc(mediaContent.ssrc),
+     _call(call),
+     _channelManager(channelManager),
+-    _rotationUpdated(rotationUpdated) {
++    _rotationUpdated(rotationUpdated),
++    _isScreencast(isScreencast) {
+         cricket::VideoOptions videoOptions;
+         videoOptions.is_screencast = isScreencast;
+ 
+@@ -557,6 +559,12 @@ public:
+ 
+             if (isScreencast) {
+                 rtpParameters.degradation_preference = webrtc::DegradationPreference::MAINTAIN_RESOLUTION;
++                const auto degradation = GetDesktopCaptureOverrides().degradation;
++                if (degradation == 1) {
++                    rtpParameters.degradation_preference = webrtc::DegradationPreference::MAINTAIN_FRAMERATE;
++                } else if (degradation == 2) {
++                    rtpParameters.degradation_preference = webrtc::DegradationPreference::BALANCED;
++                }
+             }
+ 
+             _outgoingVideoChannel->send_channel()->SetRtpSendParameters(mediaContent.ssrc, rtpParameters);
+@@ -662,6 +670,10 @@ public:
+         return _mainSsrc;
+     }
+ 
++    bool isScreencast() const {
++        return _isScreencast;
++    }
++
+     void setMaxBitrate(int bitrate) {
+         _threads->getWorkerThread()->BlockingCall([&]() {
+             webrtc::RtpParameters initialParameters = _outgoingVideoChannel->send_channel()->GetRtpSendParameters(_mainSsrc);
+@@ -702,6 +714,7 @@ private:
+     cricket::VideoChannel *_outgoingVideoChannel = nullptr;
+ 
+     std::function<void()> _rotationUpdated;
++    bool _isScreencast = false;
+ 
+     std::shared_ptr<VideoCaptureInterface> _videoCapture;
+     signaling::MediaStateMessage::VideoRotation _videoRotation = signaling::MediaStateMessage::VideoRotation::Rotation0;
+@@ -2163,7 +2176,12 @@ public:
+             _outgoingAudioChannel->setMaxBitrate(32 * 1024);
+         }
+         if (_outgoingVideoChannel) {
+-            _outgoingVideoChannel->setMaxBitrate(1000 * 1024);
++            const auto overrideKbps = _outgoingVideoChannel->isScreencast()
++                ? GetDesktopCaptureOverrides().maxBitrateKbps
++                : 0;
++            _outgoingVideoChannel->setMaxBitrate(overrideKbps > 0
++                ? overrideKbps * 1000
++                : 1000 * 1024);
+         }
+     }
+ 
