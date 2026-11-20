@@ -10,6 +10,8 @@
 #include "ui/layers/generic_box.h"
 #include "ui/widgets/fields/password_input.h"
 #include "ui/widgets/menu/menu_add_action_callback.h"
+#include "ui/rp_widget.h"
+#include "ui/ui_utility.h"
 #include "window/window_session_controller.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
@@ -117,6 +119,25 @@ void SetLocked(not_null<PeerData*> peer, bool locked) {
 	}
 }
 
+[[nodiscard]] Ui::PasswordInput *AddPinField(
+		not_null<Ui::GenericBox*> box,
+		rpl::producer<QString> placeholder) {
+	const auto &st = st::defaultInputField;
+	auto wrap = object_ptr<Ui::RpWidget>(box.get());
+	wrap->resize(wrap->width(), st.heightMin);
+	const auto field = Ui::CreateChild<Ui::PasswordInput>(
+		wrap.data(),
+		st,
+		std::move(placeholder));
+	wrap->widthValue(
+	) | rpl::on_next([=](int width) {
+		field->resize(width, field->height());
+		field->moveToLeft(0, 0);
+	}, wrap->lifetime());
+	box->addRow(std::move(wrap));
+	return field;
+}
+
 void ShowPinBox(
 		not_null<Window::SessionController*> controller,
 		bool create,
@@ -125,17 +146,13 @@ void ShowPinBox(
 		box->setTitle(create
 			? tr::ayu_ChatLockSetPinTitle()
 			: tr::ayu_ChatLockEnterPinTitle());
-		const auto pin = box->addRow(object_ptr<Ui::PasswordInput>(
+		const auto pin = AddPinField(
 			box,
-			st::defaultInputField,
 			create
 				? tr::ayu_ChatLockNewPin()
-				: tr::ayu_ChatLockPinPlaceholder()));
+				: tr::ayu_ChatLockPinPlaceholder());
 		const auto repeat = create
-			? box->addRow(object_ptr<Ui::PasswordInput>(
-				box,
-				st::defaultInputField,
-				tr::ayu_ChatLockRepeatPin()))
+			? AddPinField(box, tr::ayu_ChatLockRepeatPin())
 			: nullptr;
 		box->setFocusCallback([=] { pin->setFocusFast(); });
 
