@@ -105,6 +105,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "ayu/features/forward/ayu_forward.h"
+#include "ayu/features/chat_lock/chat_lock.h"
 
 
 namespace {
@@ -1440,6 +1441,18 @@ void MainWidget::showHistory(
 		PeerId peerId,
 		const SectionShow &params,
 		MsgId showAtMsgId) {
+	if (const auto locked = peerId
+			? session().data().peerLoaded(peerId)
+			: nullptr
+		; locked && AyuFeatures::ChatLock::NeedsUnlock(locked)) {
+		const auto weak = base::make_weak(_controller.get());
+		AyuFeatures::ChatLock::RequestUnlock(_controller, locked, [=] {
+			if (const auto strong = weak.get()) {
+				strong->showPeerHistory(peerId, params, showAtMsgId);
+			}
+		});
+		return;
+	}
 	if (peerId && _controller->window().locked()) {
 		if (params.activation != anim::activation::background) {
 			_controller->window().activate();

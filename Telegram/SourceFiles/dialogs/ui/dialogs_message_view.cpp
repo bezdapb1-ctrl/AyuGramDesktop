@@ -27,6 +27,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_text_entity.h"
 #include "styles/style_dialogs.h"
 
+// AyuGram includes
+#include "ayu/features/chat_lock/chat_lock.h"
+
+
 namespace {
 
 constexpr auto kEmojiLoopCount = 12;
@@ -184,6 +188,12 @@ void MessageView::prepare(
 	options.ignoreTopic = true;
 	options.spoilerLoginCode = true;
 	auto preview = item->toPreview(options);
+	if (AyuFeatures::ChatLock::IsLockedChat(item->history()->peer)) {
+		preview = ItemPreview();
+		preview.text = TextWithEntities{
+			tr::ayu_ChatLockPreview(tr::now),
+		};
+	}
 	_leftIcon = (preview.icon == ItemPreview::Icon::ForwardedMessage)
 		? &st::dialogsMiniForward
 		: (preview.icon == ItemPreview::Icon::ReplyToStory)

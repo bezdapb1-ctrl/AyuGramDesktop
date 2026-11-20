@@ -572,7 +572,8 @@ auto InitMessageFieldHandlers(MessageFieldHandlersArgs &&args)
 	}, [paused] {
 		return On(PowerSaving::kChatSpoiler) || paused();
 	});
-	field->setInstantReplaces(AyuFeatures::Templates::InstantReplaces());
+	field->setInstantReplaces(Ui::InstantReplaces::Default());
+	AyuFeatures::Templates::Attach(field);
 	field->setInstantReplacesEnabled(
 		Core::App().settings().replaceEmojiValue(),
 		Core::App().settings().systemTextReplaceValue());

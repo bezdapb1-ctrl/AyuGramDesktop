@@ -1094,6 +1094,24 @@ void AyuSettings::setLocalPinnedChats(const QString &val) {
 	save();
 }
 
+void AyuSettings::setLockedChats(const QString &val) {
+	if (_lockedChats == val) return;
+	_lockedChats = val;
+	save();
+}
+
+void AyuSettings::setChatLockPin(const QString &val) {
+	if (_chatLockPin == val) return;
+	_chatLockPin = val;
+	save();
+}
+
+void AyuSettings::setStyleStudio(const QString &val) {
+	if (_styleStudio == val) return;
+	_styleStudio = val;
+	save();
+}
+
 void AyuSettings::setLocalNames(const QString &val) {
 	if (_localNames == val) return;
 	_localNames = val;
@@ -1201,6 +1219,9 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"messageTemplates", s._messageTemplates.current()},
 		{"localPinnedChats", s._localPinnedChats},
 		{"localNames", s._localNames},
+		{"lockedChats", s._lockedChats},
+		{"chatLockPin", s._chatLockPin},
+		{"styleStudio", s._styleStudio},
 		{"messageShotSettings", s._messageShotSettings}
 	};
 }
@@ -1310,6 +1331,9 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._messageTemplates = j.value("messageTemplates", defaults._messageTemplates.current());
 	s._localPinnedChats = j.value("localPinnedChats", QString());
 	s._localNames = j.value("localNames", QString());
+	s._lockedChats = j.value("lockedChats", QString());
+	s._chatLockPin = j.value("chatLockPin", QString());
+	s._styleStudio = j.value("styleStudio", QString());
 
 	if (j.contains("messageShotSettings") && j["messageShotSettings"].is_object()) {
 		j["messageShotSettings"].get_to(s._messageShotSettings);

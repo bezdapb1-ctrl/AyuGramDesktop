@@ -358,6 +358,9 @@ public:
 	[[nodiscard]] const QString &messageTemplates() const { return _messageTemplates.current(); }
 	[[nodiscard]] const QString &localPinnedChats() const { return _localPinnedChats; }
 	[[nodiscard]] const QString &localNames() const { return _localNames; }
+	[[nodiscard]] const QString &lockedChats() const { return _lockedChats; }
+	[[nodiscard]] const QString &chatLockPin() const { return _chatLockPin; }
+	[[nodiscard]] const QString &styleStudio() const { return _styleStudio; }
 
 	void setSaveDeletedMessages(bool val);
 	void setSaveMessagesHistory(bool val);
@@ -450,6 +453,9 @@ public:
 	void setMessageTemplates(const QString &val);
 	void setLocalPinnedChats(const QString &val);
 	void setLocalNames(const QString &val);
+	void setLockedChats(const QString &val);
+	void setChatLockPin(const QString &val);
+	void setStyleStudio(const QString &val);
 
 	[[nodiscard]] rpl::producer<bool> useGlobalGhostModeValue() const { return _useGlobalGhostMode.value(); }
 	[[nodiscard]] rpl::producer<bool> useGlobalGhostModeChanges() const { return _useGlobalGhostMode.changes(); }
@@ -729,6 +735,9 @@ private:
 	rpl::variable<QString> _messageTemplates;
 	QString _localPinnedChats;
 	QString _localNames;
+	QString _lockedChats;
+	QString _chatLockPin;
+	QString _styleStudio;
 
 	rpl::variable<bool> _useGlobalGhostMode = true;
 	std::map<uint64, std::unique_ptr<GhostModeAccountSettings>> _ghostAccounts;

@@ -145,6 +145,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/ui/context_menu/context_menu.h"
 #include "ayu/features/forward/ayu_forward.h"
 #include "ayu/features/local_names/local_names.h"
+#include "ayu/features/chat_lock/chat_lock.h"
 #include "ayu/features/local_pins/local_pins.h"
 
 
@@ -1929,6 +1930,7 @@ void Filler::fillContextMenuActions() {
 	addToggleTopicClosed();
 	addToggleFolder();
 	AyuFeatures::LocalNames::AddMenuAction(_peer, _controller, _addAction);
+	AyuFeatures::ChatLock::AddMenuAction(_peer, _controller, _addAction);
 	if (const auto user = _peer->asUser()) {
 		if (!user->isContact()) {
 			addBlockUser();
@@ -1950,6 +1952,7 @@ void Filler::fillHistoryActions() {
 	AyuUi::AddJumpToBeginningAction(_peer, _thread, _controller, _addAction);
 	AyuUi::AddOpenChannelAction(_peer, _controller, _addAction);
 	AyuFeatures::LocalNames::AddMenuAction(_peer, _controller, _addAction);
+	AyuFeatures::ChatLock::AddMenuAction(_peer, _controller, _addAction);
 	addViewAsTopics();
 	addManageChat();
 	addStoryArchive();
@@ -1977,6 +1980,7 @@ void Filler::fillProfileActions() {
 	addShareContact();
 	addEditContact();
 	AyuFeatures::LocalNames::AddMenuAction(_peer, _controller, _addAction);
+	AyuFeatures::ChatLock::AddMenuAction(_peer, _controller, _addAction);
 	addBotToGroup();
 	addNewMembers();
 	addSendGift();

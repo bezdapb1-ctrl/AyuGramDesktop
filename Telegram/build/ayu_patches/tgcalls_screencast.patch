@@ -103,7 +103,7 @@ index 4399ad3..63fd662 100644
  	DesktopSize aspectSize;
  	double fps = 24.;
 diff --git a/tgcalls/desktop_capturer/DesktopCaptureSourceHelper.cpp b/tgcalls/desktop_capturer/DesktopCaptureSourceHelper.cpp
-index 8f32965..094ea8b 100644
+index 8f32965..1198842 100644
 --- a/tgcalls/desktop_capturer/DesktopCaptureSourceHelper.cpp
 +++ b/tgcalls/desktop_capturer/DesktopCaptureSourceHelper.cpp
 @@ -25,6 +25,16 @@
@@ -123,7 +123,15 @@ index 8f32965..094ea8b 100644
  
  #ifdef WEBRTC_MAC
  #import <QuartzCore/QuartzCore.h>
-@@ -116,7 +126,11 @@ public:
+@@ -94,6 +104,7 @@ public:
+     void setOnPause(std::function<void (bool)>);
+ private:
+     rtc::scoped_refptr<webrtc::I420Buffer> i420_buffer_;
++    rtc::scoped_refptr<webrtc::I420Buffer> full_buffer_;
+ 	std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> _sink;
+ 	std::shared_ptr<
+         rtc::VideoSinkInterface<webrtc::VideoFrame>> _secondarySink;
+@@ -116,7 +127,11 @@ public:
      void loop();
      void setOnFatalError(std::function<void ()>);
      void setOnPause(std::function<void (bool)>);
@@ -135,7 +143,7 @@ index 8f32965..094ea8b 100644
      CaptureScheduler &_scheduler;
      std::unique_ptr<webrtc::DesktopCapturer> _capturer;
      SourceFrameCallbackImpl _callback;
-@@ -127,6 +141,8 @@ private:
+@@ -127,6 +142,8 @@ private:
      bool _fatalError = false;
      bool _currentlyOnPause = false;
      double _delayMs = 0.;
@@ -144,7 +152,7 @@ index 8f32965..094ea8b 100644
  
  };
  
-@@ -159,6 +175,21 @@ void SourceFrameCallbackImpl::OnCaptureResult(
+@@ -159,6 +176,21 @@ void SourceFrameCallbackImpl::OnCaptureResult(
          || frameSize.height() >= size_.height * 2)
          ? DesktopSize{ frameSize.width() / 2, frameSize.height() / 2 }
          : DesktopSize{ frameSize.width(), frameSize.height() };
@@ -166,15 +174,121 @@ index 8f32965..094ea8b 100644
  
      fittedSize.width -= (fittedSize.width % 4);
      fittedSize.height -= (fittedSize.height % 4);
-@@ -219,6 +250,7 @@ void SourceFrameCallbackImpl::OnCaptureResult(
+@@ -168,57 +200,56 @@ void SourceFrameCallbackImpl::OnCaptureResult(
+         fittedSize.height
+     };
  
- 	assert(i420Result == 0);
- 	(void)i420Result;
+-    webrtc::BasicDesktopFrame outputFrame{ outputSize };
+-
+-	const auto outputRect = webrtc::DesktopRect::MakeSize(outputSize);
+-
+-	const auto outputRectData = outputFrame.data() +
+-        outputFrame.stride() * outputRect.top() +
+-		webrtc::DesktopFrame::kBytesPerPixel * outputRect.left();
+-
+-
+-	libyuv::ARGBScale(
+-		frame->data(),
+-		frame->stride(),
+-		frame->size().width(),
+-		frame->size().height(),
+-        outputRectData,
+-        outputFrame.stride(),
+-        outputSize.width(),
+-        outputSize.height(),
+-		libyuv::kFilterBilinear);
+-
+-	int width = outputFrame.size().width();
+-	int height = outputFrame.size().height();
+-	int stride_y = width;
+-	int stride_uv = (width + 1) / 2;
+-
+-	if (!i420_buffer_
++    const auto width = outputSize.width();
++    const auto height = outputSize.height();
++    if (!i420_buffer_
+         || i420_buffer_->width() != width
+         || i420_buffer_->height() != height) {
+-		i420_buffer_ = webrtc::I420Buffer::Create(
++        i420_buffer_ = webrtc::I420Buffer::Create(width, height);
++    }
++    if (width == frameSize.width() && height == frameSize.height()) {
++        // Same size: convert straight from the captured frame.
++        libyuv::ARGBToI420(
++            frame->data(),
++            frame->stride(),
++            i420_buffer_->MutableDataY(), i420_buffer_->StrideY(),
++            i420_buffer_->MutableDataU(), i420_buffer_->StrideU(),
++            i420_buffer_->MutableDataV(), i420_buffer_->StrideV(),
++            width,
++            height);
++    } else {
++        // Convert at full size, then scale the planes: scaling I420 moves
++        // 1.5 bytes per pixel instead of 4 for ARGB, which keeps 1080p
++        // from a 1440p screen fast enough for 60 fps.
++        if (!full_buffer_
++            || full_buffer_->width() != frameSize.width()
++            || full_buffer_->height() != frameSize.height()) {
++            full_buffer_ = webrtc::I420Buffer::Create(
++                frameSize.width(),
++                frameSize.height());
++        }
++        libyuv::ARGBToI420(
++            frame->data(),
++            frame->stride(),
++            full_buffer_->MutableDataY(), full_buffer_->StrideY(),
++            full_buffer_->MutableDataU(), full_buffer_->StrideU(),
++            full_buffer_->MutableDataV(), full_buffer_->StrideV(),
++            frameSize.width(),
++            frameSize.height());
++        libyuv::I420Scale(
++            full_buffer_->DataY(), full_buffer_->StrideY(),
++            full_buffer_->DataU(), full_buffer_->StrideU(),
++            full_buffer_->DataV(), full_buffer_->StrideV(),
++            frameSize.width(),
++            frameSize.height(),
++            i420_buffer_->MutableDataY(), i420_buffer_->StrideY(),
++            i420_buffer_->MutableDataU(), i420_buffer_->StrideU(),
++            i420_buffer_->MutableDataV(), i420_buffer_->StrideV(),
+             width,
+             height,
+-            stride_y,
+-            stride_uv,
+-            stride_uv);
+-	}
+-
+-	int i420Result = libyuv::ConvertToI420(
+-        outputFrame.data(),
+-		width * height,
+-		i420_buffer_->MutableDataY(), i420_buffer_->StrideY(),
+-		i420_buffer_->MutableDataU(), i420_buffer_->StrideU(),
+-		i420_buffer_->MutableDataV(), i420_buffer_->StrideV(),
+-		0, 0,
+-		width, height,
+-		width, height,
+-		libyuv::kRotate0,
+-		libyuv::FOURCC_ARGB);
+-
+-
+-	assert(i420Result == 0);
+-	(void)i420Result;
++            libyuv::kFilterBilinear);
++    }
 +	ReportDesktopCaptureFrame(width, height);
  	webrtc::VideoFrame nativeVideoFrame = webrtc::VideoFrame(
  		i420_buffer_,
  		webrtc::kVideoRotation_0,
-@@ -313,9 +345,34 @@ void DesktopSourceRenderer::start() {
+@@ -275,6 +306,9 @@ DesktopSourceRenderer::DesktopSourceRenderer(
+ 
+ #ifdef WEBRTC_WIN
+     options.set_allow_directx_capturer(true);
++    // Windows: capture the screen and crop it to the window while the window
++    // is unobstructed. GDI window capture alone tops out around 20 fps.
++    options.set_allow_cropping_window_capturer(true);
+ #elif defined WEBRTC_MAC
+     options.set_allow_iosurface(true);
+ #elif defined WEBRTC_USE_PIPEWIRE
+@@ -313,9 +347,34 @@ void DesktopSourceRenderer::start() {
  
      _isRunning = true;
      _timerGuard = std::make_shared<bool>(true);
@@ -209,7 +323,7 @@ index 8f32965..094ea8b 100644
  void DesktopSourceRenderer::stop() {
  //    if (_isRunning) {
  //        GlobalCount--;
-@@ -326,6 +383,7 @@ void DesktopSourceRenderer::stop() {
+@@ -326,6 +385,7 @@ void DesktopSourceRenderer::stop() {
  //    }
      _isRunning = false;
      _timerGuard = nullptr;
@@ -217,7 +331,7 @@ index 8f32965..094ea8b 100644
  }
  
  void DesktopSourceRenderer::loop() {
-@@ -333,9 +391,22 @@ void DesktopSourceRenderer::loop() {
+@@ -333,9 +393,22 @@ void DesktopSourceRenderer::loop() {
          return;
      }
  

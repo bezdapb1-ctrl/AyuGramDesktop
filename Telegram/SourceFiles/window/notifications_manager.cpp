@@ -55,6 +55,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #endif // __has_include(<gio/gio.hpp>)
 
 // AyuGram includes
+#include "ayu/features/chat_lock/chat_lock.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/utils/telegram_helpers.h"
 
@@ -1110,7 +1111,8 @@ Manager::DisplayOptions Manager::getNotificationOptions(
 	result.hideNameAndPhoto = hideEverything
 		|| (view > Core::Settings::NotifyView::ShowName);
 	result.hideMessageText = hideEverything
-		|| (view > Core::Settings::NotifyView::ShowPreview);
+		|| (view > Core::Settings::NotifyView::ShowPreview)
+		|| (peer && AyuFeatures::ChatLock::IsLockedChat(peer));
 	result.hideMarkAsRead = result.hideMessageText
 		|| (type != Data::ItemNotificationType::Message)
 		|| !item

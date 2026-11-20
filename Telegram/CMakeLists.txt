@@ -227,6 +227,12 @@ set(ayugram_files
         ayu/features/local_pins/local_pins.h
         ayu/features/quick_save/quick_save.cpp
         ayu/features/quick_save/quick_save.h
+        ayu/features/chat_lock/chat_lock.cpp
+        ayu/features/chat_lock/chat_lock.h
+        ayu/features/chat_stats/chat_stats.cpp
+        ayu/features/chat_stats/chat_stats.h
+        ayu/features/style_studio/style_studio.cpp
+        ayu/features/style_studio/style_studio.h
         ayu/features/screencast/screencast_quality.cpp
         ayu/features/screencast/screencast_quality.h
         ayu/features/templates/message_templates.cpp
