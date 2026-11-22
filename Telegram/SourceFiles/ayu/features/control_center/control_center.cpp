@@ -28,6 +28,7 @@
 
 #include <QtCore/QFile>
 #include <QtCore/QUrl>
+#include <QtGui/QCursor>
 
 #include <array>
 
@@ -41,6 +42,8 @@ struct State {
 	Ui::VerticalLayout *inner = nullptr;
 	Tab tab = Tab::Ghost;
 	Fn<void()> rebuild;
+	Fn<void()> rebuildNow;
+	bool rebuildQueued = false;
 	base::unique_qptr<Ui::PopupMenu> menu;
 	AdvancedSearch::MediaType searchType = AdvancedSearch::MediaType::Any;
 	std::vector<AdvancedSearch::Result> results;
@@ -277,7 +280,7 @@ void AddResultRow(
 	row->resize(row->width(), st::ayuSearchRowHeight);
 	const auto copy = result;
 	row->paintRequest() | rpl::on_next([=] {
-		auto p = QPainter(row);
+		auto p = QPainter(row.get());
 		if (row->isOver()) {
 			p.fillRect(row->rect(), st::windowBgOver);
 		}
@@ -615,7 +618,7 @@ void Show(not_null<Window::SessionController*> controller, Tab tab) {
 			object_ptr<Ui::VerticalLayout>(box),
 			style::margins());
 		const auto close = crl::guard(box, [=] { box->closeBox(); });
-		state->rebuild = [=] {
+		state->rebuildNow = [=] {
 			const auto inner = state->inner;
 			inner->clear();
 			switch (state->tab) {
@@ -625,6 +628,17 @@ void Show(not_null<Window::SessionController*> controller, Tab tab) {
 			case Tab::Sending: BuildSending(inner); break;
 			}
 			inner->resizeToWidth(st::boxWideWidth);
+		};
+		// Buttons ask for a rebuild from their own click handlers.
+		state->rebuild = [=] {
+			if (state->rebuildQueued) {
+				return;
+			}
+			state->rebuildQueued = true;
+			crl::on_main(state->inner, [=] {
+				state->rebuildQueued = false;
+				state->rebuildNow();
+			});
 		};
 		tabs->sectionActivated(
 		) | rpl::on_next([=](int index) {
@@ -637,7 +651,7 @@ void Show(not_null<Window::SessionController*> controller, Tab tab) {
 				state->rebuild();
 			}
 		}, box->lifetime());
-		state->rebuild();
+		state->rebuildNow();
 
 		box->addButton(rpl::single(u"Закрыть"_q), [=] { box->closeBox(); });
 	}));
