@@ -35,6 +35,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 
 // AyuGram includes
+#include "ayu/features/control_center/ghost_rules.h"
+#include "ayu/features/control_center/undo_send.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ayu_worker.h"
 #include "ayu/data/messages_storage.h"
@@ -697,22 +699,17 @@ void Histories::reportPendingDeliveries() {
 void Histories::sendReadRequests() {
 	DEBUG_LOG(("Reading: send requests with count %1.").arg(_states.size()));
 
-	// AyuGram sendReadMessages
-	const auto &ghost = AyuSettings::ghost(&_owner->session());
-	if (!ghost.sendReadMessages()) {
-		DEBUG_LOG(("[AyuGram] Don't read messages"));
-		_readRequestsTimer.cancel();
-		auto histories = std::vector<not_null<History*>>();
-		histories.reserve(_states.size());
-		for (auto &[history, state] : _states) {
+	// AyuGram sendReadMessages: decided per chat (ghost rules), then globally
+	auto silent = std::vector<not_null<History*>>();
+	for (auto &[history, state] : _states) {
+		if (!AyuFeatures::GhostRules::SendRead(history->peer)) {
 			state.willReadTill = 0;
 			state.willReadWhen = 0;
-			histories.push_back(history);
+			silent.push_back(history);
 		}
-		for (const auto history : histories) {
-			checkEmptyState(history);
-		}
-		return;
+	}
+	for (const auto history : silent) {
+		checkEmptyState(history);
 	}
 
 	if (_states.empty()) {
@@ -1150,6 +1147,12 @@ int Histories::sendPreparedMessage(
 		Fn<PreparedMessage(not_null<History*>, FullReplyTo)> message,
 		Fn<void(const MTPUpdates&, const MTP::Response&)> done,
 		Fn<void(const MTP::Error&, const MTP::Response&)> fail) {
+	// AyuGram undo send: the request goes out only after the delay
+	if (AyuFeatures::UndoSend::Intercept(history, randomId, [=, this] {
+		sendPreparedMessage(history, replyTo, randomId, message, done, fail);
+	})) {
+		return 0;
+	}
 	markReadAfterAction(history);
 	if (isCreatingTopic(history, replyTo.topicRootId)) {
 		const auto id = ++_requestAutoincrement;

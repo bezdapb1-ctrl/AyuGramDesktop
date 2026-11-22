@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 
 // AyuGram includes
+#include "ayu/features/control_center/ghost_rules.h"
 #include "ayu/ayu_settings.h"
 
 
@@ -117,9 +118,11 @@ void SendProgressManager::send(const Key &key, int progress) {
 		return;
 	}
 
-	// AyuGram sendUploadProgress
-	const auto &ghost = AyuSettings::ghost(_session);
-	if (!ghost.sendUploadProgress())
+	// AyuGram sendUploadProgress: per chat (ghost rules), then globally
+	const auto peer = key.history->peer;
+	if (key.type == SendProgressType::Typing
+		? !AyuFeatures::GhostRules::SendTyping(peer)
+		: !AyuFeatures::GhostRules::SendActions(peer))
 	{
 		DEBUG_LOG(("[AyuGram] Don't send upload progress"));
 		return;

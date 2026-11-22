@@ -29,6 +29,8 @@ void addDeletedMessage(const DeletedMessage &message);
 std::vector<DeletedMessage> getDeletedMessages(ID userId, ID dialogId, ID topicId, ID minId, ID maxId, int totalLimit, const std::string &searchQuery = "");
 bool hasDeletedMessages(ID userId, ID dialogId, ID topicId);
 void removeDeletedMessage(ID userId, ID dialogId, ID messageId);
+std::vector<DeletedMessage> searchDeletedMessages(ID userId, ID dialogId, ID fromId, int minDate, int maxDate, const std::string &query, int totalLimit);
+std::vector<EditedMessage> searchEditedMessages(ID userId, ID dialogId, ID fromId, int minDate, int maxDate, const std::string &query, int totalLimit);
 void clearDeletedMessages(ID userId, ID dialogId, ID topicId);
 
 std::vector<RegexFilter> getAllRegexFilters();

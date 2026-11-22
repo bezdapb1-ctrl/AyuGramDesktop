@@ -124,3 +124,14 @@ ayuServiceTimeBadgeVerticalPadding: 2px;
 ayuServiceTimeBadgeGap: 8px;
 ayuServiceTimeBadgeTrailingInset: 3px;
 ayuServiceTimeBadgeLastLineWidthAdd: 9px;
+
+ayuTopBarGhost: IconButton(topBarSearch) {
+	icon: icon {{ "ayu/ghost", menuIconFg }};
+	iconOver: icon {{ "ayu/ghost", menuIconFgOver }};
+	iconPosition: point(8px, 15px);
+}
+ayuTopBarGhostActiveIcon: icon {{ "ayu/ghost", windowActiveTextFg }};
+ayuUndoBadgePadding: margins(8px, 3px, 8px, 3px);
+ayuUndoBadgeSkip: 8px;
+ayuSearchRowHeight: 58px;
+ayuSearchRowPadding: margins(12px, 7px, 12px, 7px);

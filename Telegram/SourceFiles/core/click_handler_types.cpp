@@ -46,6 +46,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QLocale>
 
 // AyuGram includes
+#include "ayu/features/control_center/link_check.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ayu_url_handlers.h"
 
@@ -316,9 +317,13 @@ void HiddenUrlClickHandler::Open(QString url, QVariant context) {
 			|| (confirmAfterIvFallback && !canTryIv)
 			|| (HiddenUrlRequiresConfirmation(parsedUrl)
 				&& !skipConfirmation);
-		const auto skipWarning
-			= AyuSettings::getInstance().disableOpenLinkWarning()
-			&& AyuUrlHandlers::IsWebUrl(parsedUrl);
+		// The link check window shows the real address anyway.
+		const auto checkedLater = AyuSettings::getInstance().linkCheckEnabled()
+			&& AyuUrlHandlers::IsWebUrl(parsedUrl)
+			&& !AyuFeatures::LinkCheck::IsTrusted(parsedUrl.host().toLower());
+		const auto skipWarning = checkedLater
+			|| (AyuSettings::getInstance().disableOpenLinkWarning()
+				&& AyuUrlHandlers::IsWebUrl(parsedUrl));
 		if (!skipWarning && requiresConfirmation) {
 			if (!my.show) {
 				Core::App().hideMediaView();

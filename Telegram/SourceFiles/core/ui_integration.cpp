@@ -40,6 +40,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QLocale>
 
 // AyuGram includes
+#include "ayu/features/control_center/link_check.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ayu_url_handlers.h"
 #include "ayu/features/streamer_mode/streamer_mode.h"
@@ -451,6 +452,10 @@ bool UiIntegration::handleUrlClick(
 	}
 
 	if (AyuUrlHandlers::TryHandleSpotify(url)) {
+		return true;
+	}
+
+	if (AyuFeatures::LinkCheck::Intercept(url, context)) {
 		return true;
 	}
 

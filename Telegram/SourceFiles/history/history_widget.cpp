@@ -218,6 +218,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QMimeData>
 
 // AyuGram includes
+#include "ayu/features/control_center/undo_send.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/features/filters/filters_cache_controller.h"
 #include "ayu/utils/telegram_helpers.h"
@@ -497,6 +498,39 @@ HistoryWidget::HistoryWidget(
 	) | rpl::on_next([=](Qt::KeyboardModifiers modifiers) {
 		sendWithModifiers(modifiers);
 	}, _field->lifetime());
+	AyuFeatures::UndoSend::Restores(
+	) | rpl::on_next([=](const AyuFeatures::UndoSend::Restore &restore) {
+		if (_history != restore.history.get()) {
+			return;
+		}
+		auto text = restore.text;
+		const auto current = _field->getTextWithTags();
+		if (!current.text.isEmpty()) {
+			// Keep what was typed meanwhile, the cancelled text goes first.
+			const auto shift = int(text.text.size()) + 1;
+			text.text += QChar(10) + current.text;
+			for (auto tag : current.tags) {
+				tag.offset += shift;
+				text.tags.push_back(tag);
+			}
+		}
+		_field->setTextWithTags(text);
+		_field->setFocus();
+		auto cursor = _field->textCursor();
+		cursor.movePosition(QTextCursor::End);
+		_field->setTextCursor(cursor);
+	}, _field->lifetime());
+	base::install_event_filter(_field->rawTextEdit(), [=](not_null<QEvent*> e) {
+		if (e->type() == QEvent::KeyPress && _history) {
+			const auto key = static_cast<QKeyEvent*>(e.get());
+			if (key->key() == Qt::Key_Z
+				&& key->modifiers() == Qt::ControlModifier
+				&& AyuFeatures::UndoSend::CancelLast(_history)) {
+				return base::EventFilterResult::Cancel;
+			}
+		}
+		return base::EventFilterResult::Continue;
+	});
 	_field->cancelled(
 	) | rpl::on_next([=] {
 		if (_peer && _peer->amMonoforumAdmin()) {

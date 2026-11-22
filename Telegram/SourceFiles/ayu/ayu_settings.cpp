@@ -1094,6 +1094,36 @@ void AyuSettings::setLocalPinnedChats(const QString &val) {
 	save();
 }
 
+void AyuSettings::setGhostChatRules(const QString &val) {
+	if (_ghostChatRules == val) return;
+	_ghostChatRules = val;
+	save();
+}
+
+void AyuSettings::setGhostProfiles(const QString &val) {
+	if (_ghostProfiles == val) return;
+	_ghostProfiles = val;
+	save();
+}
+
+void AyuSettings::setTrustedLinkHosts(const QString &val) {
+	if (_trustedLinkHosts == val) return;
+	_trustedLinkHosts = val;
+	save();
+}
+
+void AyuSettings::setLinkCheckEnabled(bool val) {
+	if (_linkCheckEnabled == val) return;
+	_linkCheckEnabled = val;
+	save();
+}
+
+void AyuSettings::setUndoSendDelay(int val) {
+	if (_undoSendDelay == val) return;
+	_undoSendDelay = val;
+	save();
+}
+
 void AyuSettings::setLockedChats(const QString &val) {
 	if (_lockedChats == val) return;
 	_lockedChats = val;
@@ -1222,6 +1252,11 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"lockedChats", s._lockedChats},
 		{"chatLockPin", s._chatLockPin},
 		{"styleStudio", s._styleStudio},
+		{"ghostChatRules", s._ghostChatRules},
+		{"ghostProfiles", s._ghostProfiles},
+		{"trustedLinkHosts", s._trustedLinkHosts},
+		{"linkCheckEnabled", s._linkCheckEnabled},
+		{"undoSendDelay", s._undoSendDelay},
 		{"messageShotSettings", s._messageShotSettings}
 	};
 }
@@ -1334,6 +1369,11 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._lockedChats = j.value("lockedChats", QString());
 	s._chatLockPin = j.value("chatLockPin", QString());
 	s._styleStudio = j.value("styleStudio", QString());
+	s._ghostChatRules = j.value("ghostChatRules", QString());
+	s._ghostProfiles = j.value("ghostProfiles", QString());
+	s._trustedLinkHosts = j.value("trustedLinkHosts", QString());
+	s._linkCheckEnabled = j.value("linkCheckEnabled", true);
+	s._undoSendDelay = j.value("undoSendDelay", 3);
 
 	if (j.contains("messageShotSettings") && j["messageShotSettings"].is_object()) {
 		j["messageShotSettings"].get_to(s._messageShotSettings);

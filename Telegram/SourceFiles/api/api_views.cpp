@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 
 // AyuGram includes
+#include "ayu/features/control_center/ghost_rules.h"
 #include "ayu/ayu_settings.h"
 
 
@@ -87,8 +88,6 @@ void ViewsManager::pollExtendedMedia(
 }
 
 void ViewsManager::viewsIncrement() {
-	const auto &ghost = AyuSettings::ghost(_session);
-
 	for (auto i = _toIncrement.begin(); i != _toIncrement.cend();) {
 		if (_incrementRequests.contains(i->first)) {
 			++i;
@@ -103,7 +102,7 @@ void ViewsManager::viewsIncrement() {
 		const auto requestId = _api.request(MTPmessages_GetMessagesViews(
 			i->first->input(),
 			MTP_vector<MTPint>(ids),
-			MTP_bool(ghost.sendReadMessages())
+			MTP_bool(AyuFeatures::GhostRules::SendRead(i->first))
 		)).done([=](
 				const MTPmessages_MessageViews &result,
 				mtpRequestId requestId) {

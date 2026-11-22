@@ -361,6 +361,11 @@ public:
 	[[nodiscard]] const QString &lockedChats() const { return _lockedChats; }
 	[[nodiscard]] const QString &chatLockPin() const { return _chatLockPin; }
 	[[nodiscard]] const QString &styleStudio() const { return _styleStudio; }
+	[[nodiscard]] const QString &ghostChatRules() const { return _ghostChatRules; }
+	[[nodiscard]] const QString &ghostProfiles() const { return _ghostProfiles; }
+	[[nodiscard]] const QString &trustedLinkHosts() const { return _trustedLinkHosts; }
+	[[nodiscard]] bool linkCheckEnabled() const { return _linkCheckEnabled; }
+	[[nodiscard]] int undoSendDelay() const { return _undoSendDelay; }
 
 	void setSaveDeletedMessages(bool val);
 	void setSaveMessagesHistory(bool val);
@@ -456,6 +461,11 @@ public:
 	void setLockedChats(const QString &val);
 	void setChatLockPin(const QString &val);
 	void setStyleStudio(const QString &val);
+	void setGhostChatRules(const QString &val);
+	void setGhostProfiles(const QString &val);
+	void setTrustedLinkHosts(const QString &val);
+	void setLinkCheckEnabled(bool val);
+	void setUndoSendDelay(int val);
 
 	[[nodiscard]] rpl::producer<bool> useGlobalGhostModeValue() const { return _useGlobalGhostMode.value(); }
 	[[nodiscard]] rpl::producer<bool> useGlobalGhostModeChanges() const { return _useGlobalGhostMode.changes(); }
@@ -738,6 +748,11 @@ private:
 	QString _lockedChats;
 	QString _chatLockPin;
 	QString _styleStudio;
+	QString _ghostChatRules;
+	QString _ghostProfiles;
+	QString _trustedLinkHosts;
+	bool _linkCheckEnabled = true;
+	int _undoSendDelay = 3; // seconds, 0 - off
 
 	rpl::variable<bool> _useGlobalGhostMode = true;
 	std::map<uint64, std::unique_ptr<GhostModeAccountSettings>> _ghostAccounts;

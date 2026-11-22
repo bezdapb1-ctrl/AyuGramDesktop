@@ -81,6 +81,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QClipboard>
 
 // AyuGram includes
+#include "ayu/features/control_center/control_center.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"
@@ -839,6 +840,12 @@ void MainMenu::setupMenu() {
 			_controller->session().supportTemplates().reload();
 		});
 	}
+	addAction(
+		rpl::single(u"Control Center"_q),
+		{ &st::ayuGhostIcon }
+	)->setClickedCallback([=] {
+		AyuFeatures::ControlCenter::Show(controller);
+	});
 	addAction(
 		tr::lng_menu_settings(),
 		{ &st::menuIconSettings }

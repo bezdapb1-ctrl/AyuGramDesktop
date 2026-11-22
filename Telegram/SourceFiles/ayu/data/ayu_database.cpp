@@ -322,6 +322,52 @@ void addDeletedMessage(const DeletedMessage &message) {
 	}
 }
 
+template <typename Message>
+std::vector<Message> searchMessages(
+		ID userId,
+		ID dialogId,
+		ID fromId,
+		int minDate,
+		int maxDate,
+		const std::string &query,
+		int totalLimit) {
+	std::lock_guard lock(databaseMutex);
+	try {
+		std::string escaped;
+		escaped.reserve(query.size());
+		for (const auto c : query) {
+			if (c == '%' || c == '_' || c == '\\') {
+				escaped += '\\';
+			}
+			escaped += c;
+		}
+		const auto pattern = "%" + escaped + "%";
+		return storage.get_all<Message>(
+			where(
+				column<Message>(&Message::userId) == userId and
+				(column<Message>(&Message::dialogId) == dialogId or dialogId == 0) and
+				(column<Message>(&Message::fromId) == fromId or fromId == 0) and
+				(column<Message>(&Message::date) >= minDate or minDate == 0) and
+				(column<Message>(&Message::date) <= maxDate or maxDate == 0) and
+				like(column<Message>(&Message::text), pattern, "\\")
+			),
+			order_by(column<Message>(&Message::date)).desc(),
+			limit(totalLimit)
+		);
+	} catch (std::exception &ex) {
+		LOG(("Failed to search saved messages: %1").arg(ex.what()));
+		return {};
+	}
+}
+
+std::vector<DeletedMessage> searchDeletedMessages(ID userId, ID dialogId, ID fromId, int minDate, int maxDate, const std::string &query, int totalLimit) {
+	return searchMessages<DeletedMessage>(userId, dialogId, fromId, minDate, maxDate, query, totalLimit);
+}
+
+std::vector<EditedMessage> searchEditedMessages(ID userId, ID dialogId, ID fromId, int minDate, int maxDate, const std::string &query, int totalLimit) {
+	return searchMessages<EditedMessage>(userId, dialogId, fromId, minDate, maxDate, query, totalLimit);
+}
+
 std::vector<DeletedMessage> getDeletedMessages(ID userId, ID dialogId, ID topicId, ID minId, ID maxId, int totalLimit, const std::string &searchQuery) {
 	std::lock_guard lock(databaseMutex);
 	try {

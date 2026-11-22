@@ -73,6 +73,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QWindow>
 
 // AyuGram includes
+#include "ayu/features/control_center/ghost_rules.h"
 #include "ayu/ayu_settings.h"
 #include "boxes/peers/edit_participants_box.h"
 #include "data/data_chat_filters.h"
@@ -175,6 +176,13 @@ TopBarWidget::TopBarWidget(
 	_menuToggle->addClickHandler([=](auto) { showPeerMenu(); });
 	_menuToggle->setAcceptBoth(true, true);
 	_infoToggle->setClickedCallback([=] { toggleInfoSection(); });
+	_ayuGhost.create(this, st::ayuTopBarGhost);
+	_ayuGhost->setClickedCallback([=] { showAyuGhostMenu(); });
+	_ayuGhost->hide();
+	AyuFeatures::GhostRules::Changes(
+	) | rpl::on_next([=] {
+		updateAyuGhost();
+	}, lifetime());
 
 	_recentActions->setClickedCallback([=]
 	{
@@ -1338,12 +1346,47 @@ void TopBarWidget::updateControlsGeometry() {
 		_rightTaken += _admins->width();
 	}
 
+	if (_ayuGhost) {
+		_ayuGhost->moveToRight(_rightTaken, otherButtonsTop);
+		if (!_ayuGhost->isHidden()) {
+			_rightTaken += _ayuGhost->width();
+		}
+	}
+
 	_search->moveToRight(_rightTaken, otherButtonsTop);
 	if (!_search->isHidden()) {
 		_rightTaken += _search->width() + st::topBarCallSkip;
 	}
 
 	updateMembersShowArea();
+}
+
+void TopBarWidget::showAyuGhostMenu() {
+	const auto peer = _activeChat.key.peer();
+	if (!peer) {
+		return;
+	}
+	_ayuGhostMenu = base::make_unique_q<Ui::PopupMenu>(
+		this,
+		st::defaultPopupMenu);
+	AyuFeatures::GhostRules::FillMenu(_ayuGhostMenu.get(), _controller, peer);
+	_ayuGhostMenu->popup(mapToGlobal(QPoint(
+		_ayuGhost->x(),
+		_ayuGhost->y() + _ayuGhost->height())));
+}
+
+void TopBarWidget::updateAyuGhost() {
+	if (!_ayuGhost) {
+		return;
+	}
+	const auto peer = _activeChat.key.peer();
+	const auto id = peer
+		? AyuFeatures::GhostRules::ProfileIdFor(peer)
+		: QString();
+	const auto icon = id.isEmpty() ? nullptr : &st::ayuTopBarGhostActiveIcon;
+	_ayuGhost->setIconOverride(icon, icon);
+	_ayuGhost->setAccessibleName(
+		AyuFeatures::GhostRules::ProfileTitle(id));
 }
 
 void TopBarWidget::finishAnimating() {
@@ -1495,6 +1538,16 @@ void TopBarWidget::updateControlsVisibility() {
 		return false;
 	}();
 	_admins->setVisible(showAdmins);
+
+	if (_ayuGhost) {
+		const auto ghostPeer = _activeChat.key.peer();
+		_ayuGhost->setVisible(ghostPeer
+			&& !ghostPeer->isSelf()
+			&& (_activeChat.section == Section::History)
+			&& !_activeChat.key.folder()
+			&& !_chooseForReportReason);
+		updateAyuGhost();
+	}
 
 	const auto callsEnabled = [&] {
 		if (const auto peer = _activeChat.key.peer()) {

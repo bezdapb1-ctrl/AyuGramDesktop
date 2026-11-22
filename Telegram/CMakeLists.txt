@@ -229,6 +229,16 @@ set(ayugram_files
         ayu/features/quick_save/quick_save.h
         ayu/features/chat_lock/chat_lock.cpp
         ayu/features/chat_lock/chat_lock.h
+        ayu/features/control_center/advanced_search.cpp
+        ayu/features/control_center/advanced_search.h
+        ayu/features/control_center/control_center.cpp
+        ayu/features/control_center/control_center.h
+        ayu/features/control_center/ghost_rules.cpp
+        ayu/features/control_center/ghost_rules.h
+        ayu/features/control_center/link_check.cpp
+        ayu/features/control_center/link_check.h
+        ayu/features/control_center/undo_send.cpp
+        ayu/features/control_center/undo_send.h
         ayu/features/chat_stats/chat_stats.cpp
         ayu/features/chat_stats/chat_stats.h
         ayu/features/style_studio/style_studio.cpp

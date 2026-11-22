@@ -31,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 
 // AyuGram includes
+#include "ayu/features/control_center/ghost_rules.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/utils/telegram_helpers.h"
 
@@ -387,10 +388,8 @@ void Polls::sendVotes(
 			}
 		}
 		_session->updates().applyUpdates(result);
-		const auto &ghost = AyuSettings::ghost(_session);
-		if (!ghost.sendReadMessages()
-			&& ghost.markReadAfterAction()
-			&& item) {
+		if (item
+			&& AyuFeatures::GhostRules::ReadAfterReply(item->history()->peer)) {
 			readHistory(item);
 		}
 	}).fail([=](const MTP::Error &error) {

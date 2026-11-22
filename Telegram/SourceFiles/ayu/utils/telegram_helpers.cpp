@@ -5,6 +5,7 @@
 //
 // Copyright @Radolyn, 2026
 #include "ayu/utils/telegram_helpers.h"
+#include "ayu/features/control_center/ghost_rules.h"
 
 #include "apiwrap.h"
 #include "lang_auto.h"
@@ -457,8 +458,7 @@ void readHistory(not_null<HistoryItem*> message) {
 }
 
 void markReadAfterAction(not_null<History*> history) {
-	const auto &ghost = AyuSettings::ghost(&history->session());
-	if (ghost.sendReadMessages() || !ghost.markReadAfterAction()) {
+	if (!AyuFeatures::GhostRules::ReadAfterReply(history->peer)) {
 		return;
 	}
 	if (const auto last = history->lastServerMessage()) {

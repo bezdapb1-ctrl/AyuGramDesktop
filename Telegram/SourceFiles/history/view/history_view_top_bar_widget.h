@@ -168,6 +168,8 @@ private:
 	void showGroupCallMenu(not_null<PeerData*> peer);
 	void showCallMenu();
 	void toggleInfoSection();
+	void showAyuGhostMenu();
+	void updateAyuGhost();
 
 	[[nodiscard]] bool createMenu(
 		not_null<Ui::IconButton*> button,
@@ -263,6 +265,8 @@ private:
 	object_ptr<Ui::IconButton> _recentActions;
 	object_ptr<Ui::IconButton> _admins;
 	base::unique_qptr<Ui::PopupMenu> _menu;
+	object_ptr<Ui::IconButton> _ayuGhost = { nullptr };
+	base::unique_qptr<Ui::PopupMenu> _ayuGhostMenu;
 	base::weak_qptr<Ui::IconButton> _menuButton;
 
 	object_ptr<RpWidget> _membersShowArea = { nullptr };

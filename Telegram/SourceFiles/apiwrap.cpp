@@ -109,6 +109,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_account.h"
 
 // AyuGram includes
+#include "ayu/features/control_center/ghost_rules.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ayu_worker.h"
 #include "ayu/utils/telegram_helpers.h"
@@ -1459,7 +1460,6 @@ void ApiWrap::migrateFail(not_null<PeerData*> peer, const QString &error) {
 void ApiWrap::markContentsRead(
 		const base::flat_set<not_null<HistoryItem*>> &items) {
 	const auto &settings = AyuSettings::getInstance();
-	const auto &ghost = AyuSettings::ghost(&session());
 
 	auto markedIds = QVector<MTPint>();
 	auto channelMarkedIds = base::flat_map<
@@ -1477,7 +1477,8 @@ void ApiWrap::markContentsRead(
 			continue;
 		}
 
-		if (!ghost.sendReadMessages() && !passthrough) {
+		if (!AyuFeatures::GhostRules::SendRead(item->history()->peer)
+			&& !passthrough) {
 			continue;
 		}
 
@@ -1513,8 +1514,8 @@ void ApiWrap::markContentsRead(not_null<HistoryItem*> item) {
 		return;
 	}
 
-	const auto &ghost = AyuSettings::ghost(&session());
-	if (!ghost.sendReadMessages() && !passthrough) {
+	if (!AyuFeatures::GhostRules::SendRead(item->history()->peer)
+		&& !passthrough) {
 		return;
 	}
 

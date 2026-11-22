@@ -137,6 +137,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QMimeData>
 
 // AyuGram includes
+#include "ayu/features/control_center/undo_send.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/features/filters/filters_cache_controller.h"
 #include "ayu/features/quick_save/quick_save.h"
@@ -1762,7 +1763,15 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 				context.fullMessageSelected = selection.fullMessageSelected;
 				context.messageSelection = selection.messageSelection;
 				context.highlight = _widget->itemHighlight(item);
+				const auto undoPending = AyuFeatures::UndoSend::IsPending(item);
+				if (undoPending) {
+					p.setOpacity(0.45);
+				}
 				view->draw(p, context);
+				if (undoPending) {
+					p.setOpacity(1.);
+					AyuFeatures::UndoSend::PaintBadge(p, view, top);
+				}
 				processPainted(view, top, height);
 			}
 			top += height;
@@ -2300,6 +2309,11 @@ void HistoryInner::mousePressEvent(QMouseEvent *e) {
 		mouseActionCancel();
 		ClickHandler::unpressed();
 		_middleClickAutoscroll.toggleOrBeginHold(e->globalPos());
+		e->accept();
+		return;
+	}
+	if (e->button() == Qt::LeftButton
+		&& AyuFeatures::UndoSend::HandleClick(_history, e->pos())) {
 		e->accept();
 		return;
 	}

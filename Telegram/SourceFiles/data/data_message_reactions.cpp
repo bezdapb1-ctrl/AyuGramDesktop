@@ -43,6 +43,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/random.h"
 
 // AyuGram includes
+#include "ayu/features/control_center/ghost_rules.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/utils/telegram_helpers.h"
 
@@ -1527,8 +1528,8 @@ void Reactions::send(not_null<HistoryItem*> item, bool addToRecent) {
 		_sentRequests.remove(id);
 		_owner->session().api().applyUpdates(result);
 
-		const auto &ghost = AyuSettings::ghost(&_owner->session());
-		if (!ghost.sendReadMessages() && ghost.markReadAfterAction() && item) {
+		if (item
+			&& AyuFeatures::GhostRules::ReadAfterReply(item->history()->peer)) {
 			readHistory(item);
 		}
 	}).fail([=](const MTP::Error &error) {
