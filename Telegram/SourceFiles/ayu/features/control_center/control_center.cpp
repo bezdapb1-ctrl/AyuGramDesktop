@@ -280,7 +280,7 @@ void AddResultRow(
 	row->resize(row->width(), st::ayuSearchRowHeight);
 	const auto copy = result;
 	row->paintRequest() | rpl::on_next([=] {
-		auto p = QPainter(row.get());
+		auto p = QPainter(row);
 		if (row->isOver()) {
 			p.fillRect(row->rect(), st::windowBgOver);
 		}
